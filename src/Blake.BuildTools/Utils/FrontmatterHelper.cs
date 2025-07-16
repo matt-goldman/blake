@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace Blake.CLI.Generator;
+namespace Blake.BuildTools.Utils;
 
 public static class FrontmatterHelper
 {

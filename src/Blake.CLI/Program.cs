@@ -1,5 +1,4 @@
-﻿using Blake.CLI.Generator;
-using Blake.CLI.Utils;
+﻿using Blake.BuildTools.Generator;
 
 namespace Blake.CLI;
 
@@ -9,11 +8,90 @@ class Program
     {
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: blake build <path-to-blazor-project>");
+            await Console.Error.WriteLineAsync("Required argument missing.");
+            ShowHelp();
             return 1;
         }
 
-        var targetPath = args[0];
+        var option = args[0].ToLowerInvariant();
+        
+        switch (option)
+        {
+            case "--help":
+                ShowHelp();
+                return 0;
+            case "init":
+                return await InitBlakeAsync(args);
+            case "bake":
+                return await BakeBlakeAsync(args);
+            default:
+                await Console.Error.WriteLineAsync($"Unknown option: {option}");
+        
+                return 1;
+        }
+    }
+    
+    private static void ShowHelp()
+    {
+        Console.WriteLine("Usage:");
+        Console.WriteLine("  blake [options] <path>");
+        Console.WriteLine("Options:");
+        Console.WriteLine("  init           Configure an existing Blazor WASM app for Blake.");
+        Console.WriteLine("  bake <PATH>    Generate static content for a Blake site.");
+        Console.WriteLine("  --help         Show this help message.");
+    }
+
+    private static async Task<int> InitBlakeAsync(string[] args)
+    {
+        // get target path or use current directory
+        var targetPath = args.Length > 1 ? args[1] : Directory.GetCurrentDirectory();
+
+        var projectFile = string.Empty;
+        
+        // Check if the path is a .csproj file
+        if (Path.GetExtension(targetPath).Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!File.Exists(targetPath))
+            {
+                Console.WriteLine($"Error: Project file '{targetPath}' does not exist.");
+                return 1;
+            }
+            projectFile = targetPath;
+            targetPath = Path.GetDirectoryName(targetPath) ?? Directory.GetCurrentDirectory();
+        }
+        else
+        {
+            // If it's a directory, check for .csproj files
+            var csprojFiles = Directory.GetFiles(targetPath, "*.csproj");
+            if (csprojFiles.Length == 0)
+            {
+                Console.WriteLine("Error: No .csproj file found in the specified path.");
+                return 1;
+            }
+            projectFile = csprojFiles[0];
+        }
+        
+        if (!Directory.Exists(targetPath))
+        {
+            Console.WriteLine($"Error: Path '{targetPath}' does not exist.");
+            return 1;
+        }
+        
+        Console.WriteLine($"🛠  Initializing Blake in: {targetPath}");
+        
+        // Check if the project is a Blazor WASM app
+        if (!File.Exists(projectFile))
+        {
+            Console.WriteLine($"Error: Project file '{projectFile}' does not exist.");
+            return 1;
+        }
+        
+        return await SiteGenerator.InitAsync(projectFile);
+    }
+
+    private static async Task<int> BakeBlakeAsync(string[] args)
+    {
+        var targetPath = args[1];
         if (!Directory.Exists(targetPath))
         {
             Console.WriteLine($"Error: Path '{targetPath}' does not exist.");
@@ -29,10 +107,10 @@ class Program
             ContentFolders = new[] { "Posts", "Pages" }, // default
         };
 
-        var generator = new SiteGenerator(options);
-        await generator.BuildAsync();
+        await SiteGenerator.BuildAsync(options);
 
         Console.WriteLine("✅ Build completed successfully.");
+        
         return 0;
     }
 }

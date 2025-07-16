@@ -1,4 +1,4 @@
-namespace Blake.CLI.Utils;
+namespace Blake.BuildTools.Utils;
 
 public static class FolderUtils
 {

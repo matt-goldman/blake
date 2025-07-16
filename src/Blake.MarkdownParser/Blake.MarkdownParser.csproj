@@ -12,10 +12,15 @@
     <Description>A custom markdown parser based on Markdig and Markdig.Prism, that provides features useful for tech bloggers</Description>
     <Copyright>Verdaniq 2025</Copyright>
     <PackageProjectUrl>https://github.com/Blake-ssg/Blake.MarkdownParser</PackageProjectUrl>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Markdig" Version="0.40.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Blake.MarkdownParser\bin\$(Configuration)\net$(NetCoreVersion)\Blake.MarkdownParser.dll" Pack="true" PackagePath="lib/net$(NetCoreVersion)" Visible="false"/>
+    <None Include="..\Blake.Types\bin\$(Configuration)\net$(NetCoreVersion)\Blake.Types.dll" Pack="true" PackagePath="lib/net$(NetCoreVersion)" Visible="false" />
   </ItemGroup>
 </Project>

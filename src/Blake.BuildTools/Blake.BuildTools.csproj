@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Blake.BuildTools</AssemblyName>
+        <PackageId>Blake.BuildTools</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Matt Goldman</Authors>
+        <Description>A static site generator inspired by Occam's Blazor</Description>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <Title>Blake</Title>
+        <Copyright>Matt Goldman 2025</Copyright>
+        <PackageProjectUrl>https://github.com/matt-goldman/Blake</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/matt-goldman/Blake</RepositoryUrl>
+        <PackageTags>blazor; ssg; razor;</PackageTags>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+      </PropertyGroup>
+
+      <ItemGroup>
+        <None Include="..\..\LICENSE">
+          <Pack>True</Pack>
+          <PackagePath>\</PackagePath>
+        </None>
+        <None Include="..\..\README.md">
+          <Pack>True</Pack>
+          <PackagePath>\</PackagePath>
+        </None>
+      </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Blake.MarkdownParser\Blake.MarkdownParser.csproj" />
+      <ProjectReference Include="..\Blake.Types\Blake.Types.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    </ItemGroup>
+    
+    <!-- Set InternalVisibleTo to allow access to internal members for testing -->
+    <ItemGroup>
+      <InternalsVisibleTo Include="Blake.CLI" />
+    </ItemGroup>
+    
+</Project>

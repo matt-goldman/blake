@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Blake.CLI.Generator;
+namespace Blake.BuildTools.Generator;
 
 public static class ContentIndexBuilder
 {

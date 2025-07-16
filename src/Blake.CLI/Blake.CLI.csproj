@@ -5,16 +5,43 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <AssemblyName>Blake.CLI</AssemblyName>
+    <ToolCommandName>blake</ToolCommandName>
+    <PackageId>Blake.CLI</PackageId> <!-- Choose a unique ID for NuGet if publishing -->
+    <Version>1.0.1</Version>
+    <Authors>Matt Goldman</Authors>
+    <Description>A static site generator inspired by Occam's Blazor</Description>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Blake</Title>
+    <Copyright>Matt Goldman 2025</Copyright>
+    <PackageProjectUrl>https://github.com/matt-goldman/Blake</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/matt-goldman/Blake</RepositoryUrl>
+    <PackageTags>blazor; ssg; razor;</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- <PackageReference Include="Blake.MarkdownParser" Version="1.0.1" /> -->
-    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Blake.Types\Blake.Types.csproj" />
-    <ProjectReference Include="..\Blake.MarkdownParser\Blake.MarkdownParser.csproj" />
+    <ProjectReference Include="..\Blake.BuildTools\Blake.BuildTools.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="sample-page.md" />
+    <Content Include="sample-page.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
