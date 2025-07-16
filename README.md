@@ -7,6 +7,8 @@
 
 **Bake your Blazor into beautiful static sites.**
 
+> **Note:** This is an ongoing, experimental WIP
+
 ## Quick start
 
 ### Install the CLI:
