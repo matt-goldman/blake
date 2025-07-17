@@ -34,7 +34,7 @@ public static class ProjectFileBuilder
                 return 1;
             }
 
-            projectContent = projectContent.Insert(itemGroupIndex, $"{Environment.NewLine}    {packageReference}");
+            projectContent = projectContent.Insert(itemGroupIndex, $"{Environment.NewLine}    {packageReference}{Environment.NewLine}");
         }
         else
         {
@@ -69,9 +69,9 @@ public static class ProjectFileBuilder
         if (!projectContent.Contains("<Target Name=\"BlakeBake\" BeforeTargets=\"BeforeBuild\">"))
         {
             const string blakeBuildToolsTask = @"
-    <Target Name=""BlakeBake"" BeforeTargets=""BeforeBuild"">
+  <Target Name=""BlakeBake"" BeforeTargets=""BeforeBuild"">
       <Exec Command=""dotnet blake bake &quot;$(ProjectDir)&quot;"" />
-    </Target>
+  </Target>
 ";
             projectEndIndex = projectContent.LastIndexOf("</Project>", StringComparison.Ordinal);
             projectContent = projectContent.Insert(projectEndIndex, $"{Environment.NewLine}{blakeBuildToolsTask}{Environment.NewLine}");

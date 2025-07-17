@@ -30,12 +30,10 @@ internal static class SiteGenerator
         {
             ProjectPath = Directory.GetCurrentDirectory(),
             OutputPath = Path.Combine(Directory.GetCurrentDirectory(), ".generated"),
-            ContentFolders = []
         };
 
         Console.WriteLine($"🔧 Building site from project path: {options.ProjectPath}");
         Console.WriteLine($"📂 Output path: {options.OutputPath}");
-        Console.WriteLine($"📁 Content folders: {string.Join(", ", options.ContentFolders)}");
         Console.WriteLine("🔎 Scanning content folders...");
 
         var allPageMetadata = new List<PageMetadata>();
@@ -51,21 +49,17 @@ internal static class SiteGenerator
             Directory.CreateDirectory(options.OutputPath);
             Console.WriteLine($"✅ Created output directory: {options.OutputPath}");
         }
-        
-        if (options.ContentFolders.Length == 0)
-        {
-            Console.WriteLine("⚠️  No content folders specified. Will check every folder in the project path.");
-            options.ContentFolders = Directory.GetDirectories(options.ProjectPath)
-                .Select(Path.GetFileName)
-                .Where(folder => 
-                    folder != null &&
-                    !folder.StartsWith('.') &&
-                    !folder.Equals("obj", StringComparison.OrdinalIgnoreCase) &&
-                    !folder.Equals("bin", StringComparison.OrdinalIgnoreCase))
-                .ToArray();
-        }
 
-        foreach (var folder in options.ContentFolders)
+        var folders = Directory.GetDirectories(options.ProjectPath)
+            .Select(Path.GetFileName)
+            .Where(folder =>
+                folder != null &&
+                !folder.StartsWith('.') &&
+                !folder.Equals("obj", StringComparison.OrdinalIgnoreCase) &&
+                !folder.Equals("bin", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        foreach (var folder in folders)
         {
             if (folder == null) continue;
             
@@ -130,10 +124,33 @@ internal static class SiteGenerator
         var generatedIndexPath = Path.GetDirectoryName(projectFile) ?? string.Empty;
         ContentIndexBuilder.WriteIndexPartial(generatedIndexPath);
 
+        var importsUpdated = true;
+
+        // Add @using Blake.Types to _Imports.razor
+        var importsPath = Path.Combine(Path.GetDirectoryName(projectFile) ?? string.Empty, "_Imports.razor");
+
+        if (!File.Exists(importsPath))
+        {
+            importsUpdated = false;
+        }
+        else
+        {
+            var importsContent = await File.ReadAllTextAsync(importsPath);
+            if (!importsContent.Contains("@using Blake.Types"))
+            {
+                var blakeImports = "@using Blake.Types\n@using Blake.Generated\n";
+                await File.AppendAllTextAsync(importsPath, blakeImports);
+            }
+        }
+
         // Add sample content to the Pages folder
         if (includeSampleContent == true)
         {
             await SampleContentBuilder.InitSampleContent(projectFile);
+            if (!importsUpdated)
+            {
+                Console.WriteLine("⚠️  _Imports.razor was not found or updated. Sample content may not work as expected.");
+            }
         }
 
         Console.WriteLine("✅ Blake has been configured successfully.");

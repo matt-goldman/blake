@@ -107,8 +107,7 @@ class Program
         var options = new GenerationOptions
         {
             ProjectPath = targetPath,
-            OutputPath = Path.Combine(targetPath, ".generated"),
-            ContentFolders = ["Posts", "Pages"], // default
+            OutputPath = Path.Combine(targetPath, ".generated")
         };
 
         await SiteGenerator.BuildAsync(options);
