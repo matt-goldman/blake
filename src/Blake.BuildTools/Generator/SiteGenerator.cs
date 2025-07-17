@@ -116,147 +116,24 @@ internal static class SiteGenerator
         Console.WriteLine($"✅ Generated content index in {options.OutputPath}");
     }
 
-    public static async Task<int> InitAsync(string projectFile)
+    public static async Task<int> InitAsync(string projectFile, bool? includeSampleContent = false)
     {
-        var projectContent = await File.ReadAllTextAsync(projectFile);
-        
-        if (!projectContent.Contains("<Project Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\">"))
+        var csprojResult = await ProjectFileBuilder.InitProjectFile(projectFile);
+
+        if (csprojResult != 0)
         {
-            Console.WriteLine("Error: The specified project is not a Blazor WebAssembly app.");
-            return 1;
-        }
-        
-        // Check if the project already has Blake configured
-        if (projectContent.Contains("<PackageReference Include=\"Blake.BuildTools\""))
-        {
-            Console.WriteLine("Blake is already configured in this project.");
-            return 0;
-        }
-        
-        // Add Blake.BuildTools package reference
-        
-        var packageReference = "<PackageReference Include=\"Blake.BuildTools\" Version=\"1.0.0\" />";
-        
-        // check for existing package references
-        if (projectContent.Contains("<PackageReference"))
-        {
-            // Insert before the closing </ItemGroup> tag
-            var itemGroupIndex = projectContent.LastIndexOf("</ItemGroup>", StringComparison.Ordinal);
-            if (itemGroupIndex == -1)
-            {
-                Console.WriteLine("Error: Project file does not contain a valid ItemGroup.");
-                return 1;
-            }
-            
-            projectContent = projectContent.Insert(itemGroupIndex, $"{Environment.NewLine}    {packageReference}");
-        }
-        else
-        {
-            // Create a new ItemGroup if none exists
-            projectContent += $"{Environment.NewLine}<ItemGroup>{Environment.NewLine}    {packageReference}{Environment.NewLine}</ItemGroup>";
-        }
-        
-        // Add a custom ItemGroup for Blake content folders before the closing </Project> tag
-        var projectEndIndex = projectContent.LastIndexOf("</Project>", StringComparison.Ordinal);
-        if (projectEndIndex == -1)
-        {
-            Console.WriteLine("Error: Project file does not end with </Project>.");
-            return 1;
+            Console.WriteLine("❌ Failed to initialize Blake in the project. Please check the project file.");
+            return csprojResult;
         }
 
-        const string blakeContentFolders = @"<ItemGroup>
-      <!-- Explicitly include generated .razor files -->
-      <Content Include="".generated/**/*.razor"" />
-      <Compile Include="".generated/**/*.cs"" />
-
-      <!-- Remove template.razor files -->
-      <Content Remove=""**/template.razor"" />
-      <Compile Remove=""**/template.razor"" />
-      <None Include=""**/template.razor"" />
-    </ItemGroup>";
-        
-        projectContent = projectContent.Insert(projectEndIndex, $"{Environment.NewLine}{blakeContentFolders}{Environment.NewLine}");
-        
-        
-        // Write the updated content back to the project file
-        await File.WriteAllTextAsync(projectFile, projectContent);
-        
         // Add partial GeneratedContentIndex class
-        const string generatedContentIndex = @"using Blake.Types;
+        var generatedIndexPath = Path.GetDirectoryName(projectFile) ?? string.Empty;
+        ContentIndexBuilder.WriteIndexPartial(generatedIndexPath);
 
-namespace Generated;
-
-public static partial class GeneratedContentIndex
-{
-    public static partial List<PageMetadata> GetPages();
-}";
-        var generatedIndexPath = Path.Combine(Path.GetDirectoryName(projectFile) ?? string.Empty, "GeneratedContentIndex.cs");
-        await File.WriteAllTextAsync(generatedIndexPath, generatedContentIndex);
-        
         // Add sample content to the Pages folder
-        var pagesFolder = Path.Combine(Path.GetDirectoryName(projectFile) ?? string.Empty, "Pages");
-        if (!Directory.Exists(pagesFolder))
+        if (includeSampleContent == true)
         {
-            Directory.CreateDirectory(pagesFolder);
-        }
-        
-        var samplePagePath = Path.Combine(pagesFolder, "samplepage.md");
-
-        if (!File.Exists(samplePagePath))
-        {
-            await File.WriteAllTextAsync(samplePagePath, SamplePageContent);
-            Console.WriteLine($"✅ Sample page created at: {samplePagePath}");
-        }
-        else
-        {
-            Console.WriteLine($"⚠️  Sample page already exists at: {samplePagePath}");
-        }
-        
-        // Add sample template
-        var templatePath = Path.Combine(pagesFolder, "template.razor");
-        if (!File.Exists(templatePath))
-        {
-            await File.WriteAllTextAsync(templatePath, SampleTemplate);
-            Console.WriteLine($"✅ Sample template created at: {templatePath}");
-        }
-        else
-        {
-            Console.WriteLine($"⚠️  Sample template already exists at: {templatePath}");
-        }
-        
-        // update the nav menu
-        var navMenuPath = Path.Combine(Path.GetDirectoryName(projectFile) ?? string.Empty, "Layout", "NavMenu.razor");
-
-        if (File.Exists(navMenuPath))
-        {
-            var navMenuContent = await File.ReadAllTextAsync(navMenuPath);
-            if (navMenuContent.Contains("</nav>"))
-            {
-                // Insert the new menu item before the closing </nav> tag
-                const string newMenuItem = """
-                                           @foreach (var content in GeneratedContentIndex.GetPages())
-                                           {
-                                               <div class="nav-item px-3">
-                                                   <NavLink class="nav-link" href="@(content.Slug)">
-                                                       <span class="@(content.IconIdentifier)" aria-hidden="true"></span> @content.Title
-                                                   </NavLink>
-                                               </div>
-                                           }
-                                           """;
-                
-                var insertIndex = navMenuContent.LastIndexOf("</nav>", StringComparison.Ordinal);
-                
-                if (insertIndex != -1)
-                {
-                    navMenuContent = navMenuContent.Insert(insertIndex, $"{Environment.NewLine}{newMenuItem}{Environment.NewLine}");
-                    await File.WriteAllTextAsync(navMenuPath, navMenuContent);
-                    Console.WriteLine($"✅ Updated NavMenu.razor with dynamic content links.");
-                }
-                else
-                {
-                    Console.WriteLine("⚠️  Could not find </nav> tag in NavMenu.razor to insert dynamic content links.");
-                }
-            }
+            await SampleContentBuilder.InitSampleContent(projectFile);
         }
 
         Console.WriteLine("✅ Blake has been configured successfully.");
@@ -266,64 +143,4 @@ public static partial class GeneratedContentIndex
         
         return 0;
     }
-
-    private const string SamplePageContent = """
-                                             ---
-                                             title: 'My first test page'
-                                             date: 2025-07-16
-                                             image: images/blake-logo.png
-                                             tags: ["non-technical", "personal", "career", "community"]
-                                             description: "Get to know the fundamentals of Blake, the static site generator."
-                                             iconIdentifier: "bi bi-plus-square-fill-nav-menu"
-                                             ---
-
-                                             ## Hello world!
-
-                                             Hello. This is a test page, generated by the Blake Blazor static site generator. Like it?
-
-                                             ## FAQ
-
-                                             1. Why?
-
-                                             I...honestly can't remember!
-
-                                             2. What's next?
-
-                                             Templating system...other features...I forget. I have a roadmap though.
-
-                                             3. How do I use it?
-
-                                             Eventually it will be a standalone CLI tool, you'll be able to use it like this:
-
-                                             ```bash
-                                             blake init
-                                             blake bake
-                                             dotnet run
-                                             ```
-
-                                             ## Roadmap
-
-                                             ```bash
-                                             blake new --template my-template
-                                             blake new -t a-different-template
-                                             ```
-
-                                             """;
-    private const string SampleTemplate = """
-                                                <PageTitle>@Title</PageTitle>
-                                                
-                                                <p>
-                                                    Published on: @Published
-                                                </p>
-                                                
-                                                <p>
-                                                    @Description
-                                                </p>
-                                                
-                                                @Body
-                                                
-                                                @code {
-                                                
-                                                }
-                                                """;
 }

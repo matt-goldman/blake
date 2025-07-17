@@ -30,10 +30,20 @@
         </None>
       </ItemGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
       <ProjectReference Include="..\Blake.MarkdownParser\Blake.MarkdownParser.csproj" />
       <ProjectReference Include="..\Blake.Types\Blake.Types.csproj" />
     </ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<PackageReference Include="Blake.MarkdownParser" Version="*" />
+		<PackageReference Include="Blake.Types" Version="*" />
+	</ItemGroup>
+
+	<!--<ItemGroup>
+		<None Include="..\Blake.MarkdownParser\bin\$(Configuration)\net$(NetCoreVersion)\Blake.MarkdownParser.dll" Pack="true" PackagePath="lib/net$(NetCoreVersion)" Visible="false"/>
+		<None Include="..\Blake.Types\bin\$(Configuration)\net$(NetCoreVersion)\Blake.Types.dll" Pack="true" PackagePath="lib/net$(NetCoreVersion)" Visible="false" />
+	</ItemGroup>-->
 
     <ItemGroup>
       <PackageReference Include="YamlDotNet" Version="16.3.0" />

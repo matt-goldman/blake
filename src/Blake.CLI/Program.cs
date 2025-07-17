@@ -36,9 +36,10 @@ class Program
         Console.WriteLine("Usage:");
         Console.WriteLine("  blake [options] <path>");
         Console.WriteLine("Options:");
-        Console.WriteLine("  init           Configure an existing Blazor WASM app for Blake.");
-        Console.WriteLine("  bake <PATH>    Generate static content for a Blake site.");
-        Console.WriteLine("  --help         Show this help message.");
+        Console.WriteLine("  init <PATH>                    Configure an existing Blazor WASM app for Blake.");
+        Console.WriteLine("  bake <PATH>                    Generate static content for a Blake site.");
+        Console.WriteLine("  --IncludeSampleContent, -s     Includes a sample page and updates the nav menu (for the default Blazor template) when initializing a Blake site");
+        Console.WriteLine("  --help                         Show this help message.");
     }
 
     private static async Task<int> InitBlakeAsync(string[] args)
@@ -85,8 +86,10 @@ class Program
             Console.WriteLine($"Error: Project file '{projectFile}' does not exist.");
             return 1;
         }
-        
-        return await SiteGenerator.InitAsync(projectFile);
+
+        var includeSampleContent = args.Contains("--IncludeSampleContent") || args.Contains("-s");
+
+        return await SiteGenerator.InitAsync(projectFile, includeSampleContent);
     }
 
     private static async Task<int> BakeBlakeAsync(string[] args)
@@ -100,11 +103,12 @@ class Program
 
         Console.WriteLine($"🛠  Starting build for: {targetPath}");
 
+        // TODO: Add blake.config.json support
         var options = new GenerationOptions
         {
             ProjectPath = targetPath,
             OutputPath = Path.Combine(targetPath, ".generated"),
-            ContentFolders = new[] { "Posts", "Pages" }, // default
+            ContentFolders = ["Posts", "Pages"], // default
         };
 
         await SiteGenerator.BuildAsync(options);

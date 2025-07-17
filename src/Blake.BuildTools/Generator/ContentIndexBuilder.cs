@@ -9,7 +9,7 @@ public static class ContentIndexBuilder
         var sb = new StringBuilder();
 
         sb.AppendLine("using Blake.Types;");
-        sb.AppendLine("namespace Generated;");
+        sb.AppendLine("namespace Blake.Generated;");
         sb.AppendLine("public static partial class GeneratedContentIndex");
         sb.AppendLine("{");
         sb.AppendLine("    public static partial List<PageMetadata> GetPages() => new()");
@@ -34,5 +34,19 @@ public static class ContentIndexBuilder
 
         var filePath = Path.Combine(outputPath, "GeneratedContentIndex.cs");
         File.WriteAllText(filePath, sb.ToString());
+    }
+
+    public static void WriteIndexPartial(string outputPath)
+    {
+        const string generatedContentIndex = @"using Blake.Types;
+
+namespace Blake.Generated;
+
+public static partial class GeneratedContentIndex
+{
+    public static partial List<PageMetadata> GetPages();
+}";
+        var filePath = Path.Combine(outputPath, "GeneratedContentIndex.Partial.cs");
+        File.WriteAllText(filePath, generatedContentIndex);
     }
 }

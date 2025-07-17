@@ -6,21 +6,17 @@
     <Nullable>enable</Nullable>
     <Authors>Matt Goldman</Authors>
     <Company></Company>
-    <RepositoryUrl>https://github.com/Blake-ssg/Blake.MarkdownParser</RepositoryUrl>
+    <RepositoryUrl>https://github.com/matt-goldman/blake</RepositoryUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Blake.MarkdownParser</PackageId>
     <Description>A custom markdown parser based on Markdig and Markdig.Prism, that provides features useful for tech bloggers</Description>
-    <Copyright>Verdaniq 2025</Copyright>
-    <PackageProjectUrl>https://github.com/Blake-ssg/Blake.MarkdownParser</PackageProjectUrl>
-    <Version>1.0.2</Version>
+    <Copyright>Matt Goldman 2025</Copyright>
+    <PackageProjectUrl>https://github.com/matt-goldman/blake</PackageProjectUrl>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Markdig" Version="0.40.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\Blake.MarkdownParser\bin\$(Configuration)\net$(NetCoreVersion)\Blake.MarkdownParser.dll" Pack="true" PackagePath="lib/net$(NetCoreVersion)" Visible="false"/>
-    <None Include="..\Blake.Types\bin\$(Configuration)\net$(NetCoreVersion)\Blake.Types.dll" Pack="true" PackagePath="lib/net$(NetCoreVersion)" Visible="false" />
-  </ItemGroup>
 </Project>

@@ -7,8 +7,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CE10179B-DB3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blake.CLI", "src\Blake.CLI\Blake.CLI.csproj", "{65B8994E-8EF7-49E6-94DD-6C7E25A6B599}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Blake.MarkdownParser", "src\Blake.MarkdownParser", "{801586E6-7781-48FC-A4C1-B14826092001}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blake.MarkdownParser", "src\Blake.MarkdownParser\Blake.MarkdownParser.csproj", "{6D60273C-F4A2-4344-B8E9-71A57C676E82}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blake.Types", "src\Blake.Types\Blake.Types.csproj", "{5D2BD125-1BB4-4522-86D9-56240A326532}"
@@ -21,9 +19,6 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{65B8994E-8EF7-49E6-94DD-6C7E25A6B599}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -47,11 +42,16 @@ Global
 		{E5249E1A-28D0-4D80-85AF-A997F8CAED32}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E5249E1A-28D0-4D80-85AF-A997F8CAED32}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{65B8994E-8EF7-49E6-94DD-6C7E25A6B599} = {CE10179B-DB31-4AD1-981F-E5BD8EEB7272}
-		{801586E6-7781-48FC-A4C1-B14826092001} = {CE10179B-DB31-4AD1-981F-E5BD8EEB7272}
-		{6D60273C-F4A2-4344-B8E9-71A57C676E82} = {801586E6-7781-48FC-A4C1-B14826092001}
+		{6D60273C-F4A2-4344-B8E9-71A57C676E82} = {CE10179B-DB31-4AD1-981F-E5BD8EEB7272}
 		{5D2BD125-1BB4-4522-86D9-56240A326532} = {CE10179B-DB31-4AD1-981F-E5BD8EEB7272}
 		{E5249E1A-28D0-4D80-85AF-A997F8CAED32} = {CE10179B-DB31-4AD1-981F-E5BD8EEB7272}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BC536414-6B7F-4AB4-BB45-A17A5BFFACCB}
 	EndGlobalSection
 EndGlobal

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Blake.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": "bake E:\\temp\\BlakeTest"
+    }
+  }
+}

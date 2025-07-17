@@ -33,9 +33,13 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Blake.BuildTools\Blake.BuildTools.csproj" />
-  </ItemGroup>
+	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
+		<ProjectReference Include="..\Blake.BuildTools\Blake.BuildTools.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<PackageReference Include="Blake.BuildTools" Version="*" />
+	</ItemGroup>
 
   <ItemGroup>
     <None Remove="sample-page.md" />
