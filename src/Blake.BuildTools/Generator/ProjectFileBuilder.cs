@@ -70,7 +70,7 @@ public static class ProjectFileBuilder
         {
             const string blakeBuildToolsTask = @"
   <Target Name=""BlakeBake"" BeforeTargets=""BeforeBuild"">
-      <Exec Command=""dotnet blake bake &quot;$(ProjectDir)&quot;"" />
+      <Exec Command='blake bake &quot;$(MSBuildProjectDirectory)&quot;' />
   </Target>
 ";
             projectEndIndex = projectContent.LastIndexOf("</Project>", StringComparison.Ordinal);

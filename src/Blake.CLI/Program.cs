@@ -45,7 +45,7 @@ class Program
     private static async Task<int> InitBlakeAsync(string[] args)
     {
         // get target path or use current directory
-        var targetPath = args.Length > 1 ? args[1] : Directory.GetCurrentDirectory();
+        var targetPath = GetPathFromArgs(args);
 
         var projectFile = string.Empty;
         
@@ -94,7 +94,9 @@ class Program
 
     private static async Task<int> BakeBlakeAsync(string[] args)
     {
-        var targetPath = args[1];
+        // get target path or use current directory
+        var targetPath = GetPathFromArgs(args);
+
         if (!Directory.Exists(targetPath))
         {
             Console.WriteLine($"Error: Path '{targetPath}' does not exist.");
@@ -115,5 +117,15 @@ class Program
         Console.WriteLine("✅ Build completed successfully.");
         
         return 0;
+    }
+
+    private static string GetPathFromArgs(string[] args)
+    {
+        if (args.Length > 1 && !string.IsNullOrWhiteSpace(args[1]) && !args[1].StartsWith('-'))
+        {
+            return args[1];
+        }
+
+        return Directory.GetCurrentDirectory();
     }
 }
