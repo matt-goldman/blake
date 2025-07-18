@@ -1,4 +1,5 @@
 ﻿using Blake.BuildTools.Generator;
+using System.Diagnostics;
 
 namespace Blake.CLI;
 
@@ -118,6 +119,27 @@ class Program
         
         return 0;
     }
+
+    public static async Task<int> ServeBakeAsync(string[] args)
+    {
+        var path = args.Length > 1 ? args[1].Trim('"') : Directory.GetCurrentDirectory();
+
+        Console.WriteLine($"🔧 Baking in: {path}");
+        var bakeResult = await BakeBlakeAsync(args);
+        if (bakeResult != 0) return bakeResult;
+
+        Console.WriteLine("🚀 Running app...");
+        var psi = new ProcessStartInfo("dotnet", $"run --project \"{path}\"")
+        {
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
+            UseShellExecute = true
+        };
+
+        Process.Start(psi)?.WaitForExit();
+        return 0;
+    }
+
 
     private static string GetPathFromArgs(string[] args)
     {

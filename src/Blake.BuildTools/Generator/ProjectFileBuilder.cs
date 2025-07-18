@@ -65,18 +65,6 @@ public static class ProjectFileBuilder
         projectContent = projectContent.Insert(projectEndIndex, $"{Environment.NewLine}{blakeContentFolders}{Environment.NewLine}");
 
 
-        // Add the MS Build task to run the Blake.BuildTools generator
-        if (!projectContent.Contains("<Target Name=\"BlakeBake\" BeforeTargets=\"BeforeBuild\">"))
-        {
-            const string blakeBuildToolsTask = @"
-  <Target Name=""BlakeBake"" BeforeTargets=""BeforeBuild"">
-      <Exec Command='blake bake &quot;$(MSBuildProjectDirectory)&quot;' />
-  </Target>
-";
-            projectEndIndex = projectContent.LastIndexOf("</Project>", StringComparison.Ordinal);
-            projectContent = projectContent.Insert(projectEndIndex, $"{Environment.NewLine}{blakeBuildToolsTask}{Environment.NewLine}");
-        }
-
         // Write the updated content back to the project file
         await File.WriteAllTextAsync(projectFilePath, projectContent);
 
