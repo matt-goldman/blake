@@ -9,17 +9,17 @@ internal static class SiteGenerator
 {
     private static MarkdownPipeline GetMarkdownPipeline(bool? useDefaultRenderers = true) => new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
-        .UseCustomContainers()
+        //.UseCustomContainers()
         .UseFigures()
         .UseYamlFrontMatter()
         .UseBootstrap()
-        .UsePrism(new PrismOptions
-        {
-            UseLineNumbers = true,
-            UseCopyButton = true,
-            UseLineHighlighting = true,
-            UseLineDiff = true
-        })
+        //.UsePrism(new PrismOptions
+        //{
+        //    UseLineNumbers = true,
+        //    UseCopyButton = true,
+        //    UseLineHighlighting = true,
+        //    UseLineDiff = true
+        //})
         .UseImageCaptions()
         .SetupContainerRenderers(useDefaultRenderers, useRazorContainers: true)
         .Build();
@@ -59,6 +59,8 @@ internal static class SiteGenerator
                 !folder.Equals("bin", StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
+        var mdPipeline = GetMarkdownPipeline(options.UseDefaultRenderers);
+
         foreach (var folder in folders)
         {
             if (folder == null) continue;
@@ -91,7 +93,7 @@ internal static class SiteGenerator
                 metadata.Slug = slug;
                 allPageMetadata.Add(metadata);
 
-                var parsedContent = Markdown.ToHtml(mdContent, GetMarkdownPipeline(options.UseDefaultRenderers));
+                var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
 
                 var generatedRazor = RazorPageBuilder.BuildRazorPage(templatePath, parsedContent, slug, metadata);
 
@@ -138,7 +140,15 @@ internal static class SiteGenerator
             var importsContent = await File.ReadAllTextAsync(importsPath);
             if (!importsContent.Contains("@using Blake.Types"))
             {
-                var blakeImports = "@using Blake.Types\n@using Blake.Generated\n";
+                var blakeImports = $"@using Blake.Types\n@using Blake.Generated\n";
+
+                if (includeSampleContent == true)
+                {
+                    var fileName = Path.GetFileName(projectFile);
+                    var projectComponentsNamespace = fileName.Replace(".csproj", ".Components");
+                    blakeImports += $"@using {projectComponentsNamespace}\n";
+                }
+
                 await File.AppendAllTextAsync(importsPath, blakeImports);
             }
         }
@@ -146,6 +156,7 @@ internal static class SiteGenerator
         // Add sample content to the Pages folder
         if (includeSampleContent == true)
         {
+            Console.WriteLine("📝 Adding sample content to the project...");
             await SampleContentBuilder.InitSampleContent(projectFile);
             if (!importsUpdated)
             {
@@ -156,6 +167,7 @@ internal static class SiteGenerator
         Console.WriteLine("✅ Blake has been configured successfully.");
         Console.WriteLine("Run 'blake bake' to generate the site content.");
         Console.WriteLine("Run 'dotnet run' to run your new Blake site.");
+        Console.WriteLine("Or just run 'blake serve' to do both.");
         Console.WriteLine("Refer to the documentation for further setup instructions.");
         
         return 0;

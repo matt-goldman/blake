@@ -1,4 +1,4 @@
-using Markdig;
+﻿using Markdig;
 using Markdig.Extensions.CustomContainers;
 using Markdig.Prism;
 
@@ -28,36 +28,7 @@ public static class MarkdigExtensions
         // Add the custom container parser if not already present
         builder.Extensions.AddIfNotAlready<CustomContainerExtension>();
 
-        if (useDefaultRenderers == true)
-        {
-            // Add the default container renderer if not already present
-            builder.Extensions.AddIfNotAlready<DefaultContainerExtension>();
-        }
-        else
-        {
-            // get the DefaultContainerExtension and remove it
-            var defaultContainerExtension = builder.Extensions.OfType<DefaultContainerExtension>().FirstOrDefault();
-
-            if (defaultContainerExtension != null)
-            {
-                builder.Extensions.Remove(defaultContainerExtension);
-            }
-        }
-
-        if (useRazorContainers == true)
-        {
-            // Add the Razor container extension if not already present
-            builder.Extensions.AddIfNotAlready<RazorContainerExtension>();
-        }
-        else
-        {
-            // get the RazorContainerExtension and remove it
-            var razorContainerExtension = builder.Extensions.OfType<RazorContainerExtension>().FirstOrDefault();
-            if (razorContainerExtension != null)
-            {
-                builder.Extensions.Remove(razorContainerExtension);
-            }
-        }
+        builder.Extensions.AddIfNotAlready(new DefaultContainerExtension(useDefaultRenderers??true, useRazorContainers??false));
 
         return builder;
     }
