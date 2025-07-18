@@ -21,7 +21,7 @@ internal static class SiteGenerator
             UseLineDiff = true
         })
         .UseImageCaptions()
-        .SetupContainerRenderers(useDefaultRenderers)
+        .SetupContainerRenderers(useDefaultRenderers, useRazorContainers: true)
         .Build();
 
     public static async Task BuildAsync(GenerationOptions? options = null)

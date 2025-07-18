@@ -44,15 +44,15 @@ class Program
         Console.WriteLine("Commands:");
         Console.WriteLine("  init <PATH>          Configure an existing Blazor WASM app for Blake.");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --includeSampleContent, -s   Include sample page and update nav (default: false)");
+        Console.WriteLine("                         --includeSampleContent, -s   Include sample page and update nav");
         Console.WriteLine();
         Console.WriteLine("  bake <PATH>          Generate static content for a Blake site.");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --useDefaultRenderers, -udr  Use built-in Bootstrap container renderers (default: true)");
+        Console.WriteLine("                         --disableDefaultRenderers, -dr  Disable the built-in Bootstrap container renderers");
         Console.WriteLine();
         Console.WriteLine("  serve <PATH>         Bake and run the Blazor app in development mode.");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --useDefaultRenderers, -udr  Use built-in Bootstrap container renderers (default: true)");
+        Console.WriteLine("                         --disableDefaultRenderers, -dr  Disable the built-in Bootstrap container renderers");
         Console.WriteLine();
         Console.WriteLine("  --help               Show this help message.");
     }
@@ -103,7 +103,7 @@ class Program
             return 1;
         }
 
-        var includeSampleContent = args.Contains("--IncludeSampleContent") || args.Contains("-s");
+        var includeSampleContent = args.Contains("--includeSampleContent") || args.Contains("-s");
 
         return await SiteGenerator.InitAsync(projectFile, includeSampleContent);
     }
@@ -126,7 +126,7 @@ class Program
         {
             ProjectPath = targetPath,
             OutputPath = Path.Combine(targetPath, ".generated"),
-            UseDefaultRenderers = !args.Contains("--UseDefaultRenderers") && !args.Contains("-udr")
+            UseDefaultRenderers = !args.Contains("--disableDefaultRenderers") && !args.Contains("-dr")
         };
 
         await SiteGenerator.BuildAsync(options);

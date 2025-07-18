@@ -23,7 +23,7 @@ public static class MarkdigExtensions
         return pipeline;
     }
 
-    public static MarkdownPipelineBuilder SetupContainerRenderers(this MarkdownPipelineBuilder builder, bool? useDefaultRenderers = true)
+    public static MarkdownPipelineBuilder SetupContainerRenderers(this MarkdownPipelineBuilder builder, bool? useDefaultRenderers = true, bool? useRazorContainers = false)
     {
         // Add the custom container parser if not already present
         builder.Extensions.AddIfNotAlready<CustomContainerExtension>();
@@ -42,8 +42,21 @@ public static class MarkdigExtensions
             {
                 builder.Extensions.Remove(defaultContainerExtension);
             }
+        }
 
-            // TODO: Add the RazorContainerExtension (TBW)
+        if (useRazorContainers == true)
+        {
+            // Add the Razor container extension if not already present
+            builder.Extensions.AddIfNotAlready<RazorContainerExtension>();
+        }
+        else
+        {
+            // get the RazorContainerExtension and remove it
+            var razorContainerExtension = builder.Extensions.OfType<RazorContainerExtension>().FirstOrDefault();
+            if (razorContainerExtension != null)
+            {
+                builder.Extensions.Remove(razorContainerExtension);
+            }
         }
 
         return builder;
