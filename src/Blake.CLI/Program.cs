@@ -25,6 +25,8 @@ class Program
                 return await InitBlakeAsync(args);
             case "bake":
                 return await BakeBlakeAsync(args);
+            case "serve":
+                return await ServeBakeAsync(args);
             default:
                 await Console.Error.WriteLineAsync($"Unknown option: {option}");
         
