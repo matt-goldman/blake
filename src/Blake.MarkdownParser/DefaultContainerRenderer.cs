@@ -4,7 +4,7 @@ using Markdig.Renderers.Html;
 
 namespace Blake.MarkdownParser;
 
-public class BlakeContainerRenderer : HtmlObjectRenderer<CustomContainer>
+public class DefaultContainerRenderer : HtmlObjectRenderer<CustomContainer>
 {
     private static readonly string[] _containerTypes = ["exercise", "warning", "tip", "info", "note"];
 

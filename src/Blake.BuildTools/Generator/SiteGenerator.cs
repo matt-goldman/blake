@@ -7,7 +7,7 @@ namespace Blake.BuildTools.Generator;
 
 internal static class SiteGenerator
 {
-    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+    private static MarkdownPipeline GetMarkdownPipeline(bool? useDefaultRenderers = true) => new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
         .UseCustomContainers()
         .UseFigures()
@@ -21,7 +21,7 @@ internal static class SiteGenerator
             UseLineDiff = true
         })
         .UseImageCaptions()
-        .UseAncRenderers()
+        .SetupContainerRenderers(useDefaultRenderers)
         .Build();
 
     public static async Task BuildAsync(GenerationOptions? options = null)
@@ -91,7 +91,7 @@ internal static class SiteGenerator
                 metadata.Slug = slug;
                 allPageMetadata.Add(metadata);
 
-                var parsedContent = Markdown.ToHtml(mdContent, Pipeline);
+                var parsedContent = Markdown.ToHtml(mdContent, GetMarkdownPipeline(options.UseDefaultRenderers));
 
                 var generatedRazor = RazorPageBuilder.BuildRazorPage(templatePath, parsedContent, slug, metadata);
 

@@ -4,7 +4,7 @@ using Markdig.Renderers;
 
 namespace Blake.MarkdownParser;
 
-public class BlakeContainerExtension : IMarkdownExtension
+public class DefaultContainerExtension : IMarkdownExtension
 {
     public void Setup(MarkdownPipelineBuilder pipeline)
     {
@@ -21,10 +21,10 @@ public class BlakeContainerExtension : IMarkdownExtension
 
         if (renderer is HtmlRenderer htmlRenderer)
         {
-            if (!htmlRenderer.ObjectRenderers.Contains<BlakeContainerRenderer>())
+            if (!htmlRenderer.ObjectRenderers.Contains<DefaultContainerRenderer>())
             {
                 // Must be inserted before CodeBlockRenderer
-                htmlRenderer.ObjectRenderers.Insert(0, new BlakeContainerRenderer());
+                htmlRenderer.ObjectRenderers.Insert(0, new DefaultContainerRenderer());
             }
         }
     }

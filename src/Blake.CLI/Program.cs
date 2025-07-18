@@ -33,17 +33,30 @@ class Program
                 return 1;
         }
     }
-    
+
     private static void ShowHelp()
     {
         Console.WriteLine("Usage:");
-        Console.WriteLine("  blake [options] <path>");
-        Console.WriteLine("Options:");
-        Console.WriteLine("  init <PATH>                    Configure an existing Blazor WASM app for Blake.");
-        Console.WriteLine("  bake <PATH>                    Generate static content for a Blake site.");
-        Console.WriteLine("  --IncludeSampleContent, -s     Includes a sample page and updates the nav menu (for the default Blazor template) when initializing a Blake site");
-        Console.WriteLine("  --help                         Show this help message.");
+        Console.WriteLine("  blake <command> [path] [options]");
+        Console.WriteLine();
+        Console.WriteLine("If no [path] is provided, the current working directory is used.");
+        Console.WriteLine();
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  init <PATH>          Configure an existing Blazor WASM app for Blake.");
+        Console.WriteLine("                       Options:");
+        Console.WriteLine("                         --includeSampleContent, -s   Include sample page and update nav (default: false)");
+        Console.WriteLine();
+        Console.WriteLine("  bake <PATH>          Generate static content for a Blake site.");
+        Console.WriteLine("                       Options:");
+        Console.WriteLine("                         --useDefaultRenderers, -udr  Use built-in Bootstrap container renderers (default: true)");
+        Console.WriteLine();
+        Console.WriteLine("  serve <PATH>         Bake and run the Blazor app in development mode.");
+        Console.WriteLine("                       Options:");
+        Console.WriteLine("                         --useDefaultRenderers, -udr  Use built-in Bootstrap container renderers (default: true)");
+        Console.WriteLine();
+        Console.WriteLine("  --help               Show this help message.");
     }
+
 
     private static async Task<int> InitBlakeAsync(string[] args)
     {
@@ -112,7 +125,8 @@ class Program
         var options = new GenerationOptions
         {
             ProjectPath = targetPath,
-            OutputPath = Path.Combine(targetPath, ".generated")
+            OutputPath = Path.Combine(targetPath, ".generated"),
+            UseDefaultRenderers = !args.Contains("--UseDefaultRenderers") && !args.Contains("-udr")
         };
 
         await SiteGenerator.BuildAsync(options);

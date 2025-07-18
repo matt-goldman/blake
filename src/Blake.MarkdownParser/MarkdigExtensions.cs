@@ -23,11 +23,29 @@ public static class MarkdigExtensions
         return pipeline;
     }
 
-    public static MarkdownPipelineBuilder UseAncRenderers(this MarkdownPipelineBuilder builder)
+    public static MarkdownPipelineBuilder SetupContainerRenderers(this MarkdownPipelineBuilder builder, bool? useDefaultRenderers = true)
     {
         // Add the custom container parser if not already present
         builder.Extensions.AddIfNotAlready<CustomContainerExtension>();
-        builder.Extensions.AddIfNotAlready<BlakeContainerExtension>();
+
+        if (useDefaultRenderers == true)
+        {
+            // Add the default container renderer if not already present
+            builder.Extensions.AddIfNotAlready<DefaultContainerExtension>();
+        }
+        else
+        {
+            // get the DefaultContainerExtension and remove it
+            var defaultContainerExtension = builder.Extensions.OfType<DefaultContainerExtension>().FirstOrDefault();
+
+            if (defaultContainerExtension != null)
+            {
+                builder.Extensions.Remove(defaultContainerExtension);
+            }
+
+            // TODO: Add the RazorContainerExtension (TBW)
+        }
+
         return builder;
     }
 }
