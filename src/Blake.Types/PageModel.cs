@@ -1,6 +1,6 @@
 namespace Blake.Types;
 
-public class PageMetadata
+public class PageModel
 {
     public string Title { get; set; } = "Untitled";
 
@@ -17,4 +17,6 @@ public class PageMetadata
     public string? Image { get; set; }
 
     public string? IconIdentifier { get; set; }
+
+    public Dictionary<string, string> Metadata { get; set; } = [];
 }

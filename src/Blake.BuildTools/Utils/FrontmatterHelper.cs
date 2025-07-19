@@ -31,10 +31,28 @@ public static class FrontmatterHelper
         }
     }
 
-    public static T MapToMetadata<T>(Dictionary<string, object> dict) where T : new()
+    public static T MapToMetadata<T>(Dictionary<string, object> dict) where T : PageModel
     {
-        var obj = new T();
+        if ((Activator.CreateInstance<T>() ?? throw new InvalidOperationException($"Cannot create instance of {typeof(T).FullName}")) is not T obj)
+            throw new InvalidOperationException($"Failed to create instance of {typeof(T).FullName}");
+
         var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        var knownProps = props.Select(p => p.Name).ToList();
+
+        var extraFields = dict
+            .Where(kv => !knownProps.Contains(kv.Key, StringComparer.OrdinalIgnoreCase) && kv.Value is not null)
+            .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
+        if (extraFields?.Count > 0)
+        {
+            foreach (var (key, value) in extraFields)
+            {
+                if (value is not null)
+                    obj.Metadata[key] = value.ToString();
+            }
+        }
+
 
         foreach (var prop in props)
         {

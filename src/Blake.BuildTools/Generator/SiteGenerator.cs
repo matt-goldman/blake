@@ -36,7 +36,7 @@ internal static class SiteGenerator
         Console.WriteLine($"📂 Output path: {options.OutputPath}");
         Console.WriteLine("🔎 Scanning content folders...");
 
-        var allPageMetadata = new List<PageMetadata>();
+        var allPageMetadata = new List<PageModel>();
         
         // iterate through all folders in the project path, find template.razor files
         if (!Directory.Exists(options.ProjectPath))
@@ -88,7 +88,7 @@ internal static class SiteGenerator
                 var mdContent = await File.ReadAllTextAsync(mdPath);
 
                 var frontmatter = FrontmatterHelper.ParseFrontmatter(mdContent, cleanedContent: out _);
-                var metadata = FrontmatterHelper.MapToMetadata<PageMetadata>(frontmatter);
+                var metadata = FrontmatterHelper.MapToMetadata<PageModel>(frontmatter);
 
                 metadata.Slug = slug;
                 allPageMetadata.Add(metadata);

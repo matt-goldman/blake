@@ -4,7 +4,7 @@ namespace Blake.BuildTools.Generator;
 
 public static class ContentIndexBuilder
 {
-    public static void WriteIndex(string outputPath, List<PageMetadata> allPages)
+    public static void WriteIndex(string outputPath, List<PageModel> allPages)
     {
         var sb = new StringBuilder();
 
@@ -12,12 +12,12 @@ public static class ContentIndexBuilder
         sb.AppendLine("namespace Blake.Generated;");
         sb.AppendLine("public static partial class GeneratedContentIndex");
         sb.AppendLine("{");
-        sb.AppendLine("    public static partial List<PageMetadata> GetPages() => new()");
+        sb.AppendLine("    public static partial List<PageModel> GetPages() => new()");
         sb.AppendLine("    {");
 
         foreach (var page in allPages)
         {
-            sb.AppendLine("        new PageMetadata");
+            sb.AppendLine("        new PageModel");
             sb.AppendLine("        {");
             sb.AppendLine($"            Title = @\"{page.Title}\",");
             sb.AppendLine($"            Slug = @\"{page.Slug}\",");
@@ -44,7 +44,7 @@ namespace Blake.Generated;
 
 public static partial class GeneratedContentIndex
 {
-    public static partial List<PageMetadata> GetPages();
+    public static partial List<PageModel> GetPages();
 }";
         var filePath = Path.Combine(outputPath, "GeneratedContentIndex.Partial.cs");
         File.WriteAllText(filePath, generatedContentIndex);

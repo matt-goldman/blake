@@ -2,7 +2,7 @@ namespace Blake.BuildTools.Generator;
 
 public static class RazorPageBuilder
 {
-    public static string BuildRazorPage(string templatePath, string markdownContent, string route, PageMetadata metadata)
+    public static string BuildRazorPage(string templatePath, string markdownContent, string route, PageModel metadata)
     {
         var templateSource = File.ReadAllText(templatePath);
 
