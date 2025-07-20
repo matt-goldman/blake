@@ -4,6 +4,30 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  <AssemblyName>Blake.Types</AssemblyName>
+	  <PackageId>Blake.Types</PackageId>
+	  <Version>1.0.0</Version>
+	  <Authors>Matt Goldman</Authors>
+	  <Description>Shared classes used by different components of the Blake SSG</Description>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	  <Title>Blake</Title>
+	  <Copyright>Matt Goldman 2025</Copyright>
+	  <PackageProjectUrl>https://github.com/matt-goldman/Blake</PackageProjectUrl>
+	  <RepositoryUrl>https://github.com/matt-goldman/Blake</RepositoryUrl>
+	  <PackageTags>blazor; ssg; razor;</PackageTags>
+	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+	  <None Include="..\..\LICENSE">
+		  <Pack>True</Pack>
+		  <PackagePath>\</PackagePath>
+	  </None>
+	  <None Include="..\..\README.md">
+		  <Pack>True</Pack>
+		  <PackagePath>\</PackagePath>
+	  </None>
+  </ItemGroup>
 
 </Project>

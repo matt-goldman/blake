@@ -2,6 +2,8 @@ namespace Blake.Types;
 
 public class PageModel
 {
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
     public string Title { get; set; } = "Untitled";
 
     public DateTime? Date { get; set; }

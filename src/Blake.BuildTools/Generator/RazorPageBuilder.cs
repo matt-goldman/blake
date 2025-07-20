@@ -12,6 +12,7 @@ public static class RazorPageBuilder
         templateSource = templateSource.Replace("@Title", metadata.Title);
         templateSource = templateSource.Replace("@Description", metadata.Description);
         templateSource = templateSource.Replace("@Published", metadata.Date?.ToString("D"));
+        templateSource = templateSource.Replace("@Id", metadata.Id);
 
         var pageDirective = $"@page \"{route}\"";
 
