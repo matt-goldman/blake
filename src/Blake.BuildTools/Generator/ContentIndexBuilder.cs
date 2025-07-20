@@ -19,6 +19,7 @@ public static class ContentIndexBuilder
         {
             sb.AppendLine("        new PageModel");
             sb.AppendLine("        {");
+            sb.AppendLine($"            Id = @\"{page.Id}\",");
             sb.AppendLine($"            Title = @\"{page.Title}\",");
             sb.AppendLine($"            Slug = @\"{page.Slug}\",");
             sb.AppendLine($"            Description = @\"{page.Description}\",");
@@ -26,7 +27,15 @@ public static class ContentIndexBuilder
                 sb.AppendLine($"            Date = new DateTime({page.Date.Value.Year}, {page.Date.Value.Month}, {page.Date.Value.Day}),");
             sb.AppendLine($"            Draft = {page.Draft.ToString().ToLowerInvariant()},");
             sb.AppendLine($"            IconIdentifier = @\"{page.IconIdentifier}\",");
-            sb.AppendLine($"            Tags = new List<string> {{ {string.Join(", ", page.Tags.Select(t => $"\"{t}\""))} }}");
+            sb.AppendLine($"            Tags = new List<string> {{ {string.Join(", ", page.Tags.Select(t => $"\"{t}\""))} }},");
+            sb.AppendLine($"            Image = @\"{page.Image}\",");
+            sb.AppendLine("            Metadata = new Dictionary<string, string>");
+            sb.AppendLine("            {");
+            foreach (var kvp in page.Metadata)
+            {
+                sb.AppendLine($"                [\"{kvp.Key}\"] = \"{kvp.Value}\",");
+            }
+            sb.AppendLine("            }");
             sb.AppendLine("        },");
         }
 

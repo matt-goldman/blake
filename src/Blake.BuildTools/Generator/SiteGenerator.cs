@@ -100,7 +100,12 @@ internal static class SiteGenerator
                 var outputDir = Path.Combine(options.OutputPath, folder.ToLowerInvariant());
                 Directory.CreateDirectory(outputDir);
 
-                var outputPath = Path.Combine(outputDir, $"{fileName}.razor");
+                // create output filename - remove spaces or dashes, and convert to PascalCase instead
+                // Razor filenames must be PascalCase and cannot contain spaces or dashes; this avoids enforcing this convention in markdown files
+                var fileNameParts = fileName.Split([' ', '-'], StringSplitOptions.RemoveEmptyEntries);
+                var outputFileName = string.Join("", fileNameParts.Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
+
+                var outputPath = Path.Combine(outputDir, $"{outputFileName}.razor");
                 await File.WriteAllTextAsync(outputPath, generatedRazor);
 
                 Console.WriteLine($"✅ Generated page: {outputPath}");
