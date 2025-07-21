@@ -56,7 +56,7 @@ class Program
         Console.WriteLine();
         Console.WriteLine("  new <PATH>           Generates a new Blake site");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --template, -t   The name of the template to create a site from (optional). Uses the default Blazor WASM template if not specified.");
+        Console.WriteLine("                         --template, -t   The name or short name of the template to create a site from (optional). Uses the default Blazor WASM template if not specified.");
         Console.WriteLine("                         --siteName, -sn  The name of the new site (optional). Uses the directory name if not specified. If configured in the template, replaces the template name with the provided name.");
         Console.WriteLine("                         --url, -u        The URL of the repo that hosts the template (optional). Can be used to install templates outside the public Blake registry. Uses Git, so should work with any repo you have access to.");
         Console.WriteLine("                         --list           Lists all available templates in the public Blake registry");
@@ -169,6 +169,8 @@ class Program
 
     private static async Task<int> NewSiteAsync(string[] args)
     {
+        Console.WriteLine();
+
         var templateService = new TemplateService();
         
         if (args[1] == "--list")
@@ -181,13 +183,11 @@ class Program
             if (templateList.Count > 0)
             {
                 Console.WriteLine("Available templates:");
-                Console.WriteLine("Template Name        | Description         | Main Category       | Author");
-                Console.WriteLine("---------------------|---------------------|---------------------|---------------------");
+                Console.WriteLine("Template Name             | Short name       | Description               | Main Category       | Author");
+                Console.WriteLine("--------------------------|------------------|---------------------------|---------------------|-----------------");
                 foreach (var template in templateList)
                 {
-                    Console.WriteLine($"{template.Name,-20} | {template.Description,-20} | {template.MainCategory,-20} | {template.Author}");
-                    Console.WriteLine($"Last Updated: {template.LastUpdated:yyyy-MM-dd HH:mm:ss} | Repository: {template.RepositoryUrl}");
-                    Console.WriteLine(new string('-', 80));
+                    Console.WriteLine($"{template.Name,-26} | {template.ShortName,-16} | {template.Description,-25} | {template.MainCategory,-19} | {template.Author}");
                 }
             }
             else
@@ -205,6 +205,9 @@ class Program
 
         var result = 0;
 
+        Console.WriteLine($"🛠  Creating new site in: {directory}");
+        Console.WriteLine();
+
         if (argList.Contains("--siteName") || argList.Contains("-sn"))
         {
             var siteNameFlagIndex = argList.FindIndex(arg => arg is "--siteName" or "-sn");
@@ -212,13 +215,24 @@ class Program
             if (siteNameFlagIndex >= 0)
             {
                 newSiteName = argList[siteNameFlagIndex + 1];
+
+                if (string.IsNullOrWhiteSpace(newSiteName) || newSiteName.Contains(Path.DirectorySeparatorChar) || newSiteName.Contains(Path.AltDirectorySeparatorChar))
+                {
+                    Console.WriteLine($"❌ Error: Site name '{newSiteName}' is invalid. It should not contain directory separators.");
+                    return 1;
+                }
+
+                Console.WriteLine($"Using provided site name: {newSiteName}");
             }
         }
         else
         {
             var directoryParts = directory.Split(Path.DirectorySeparatorChar);
             newSiteName = directoryParts[^1];
+            Console.WriteLine($"No site name provided, using directory name: {newSiteName}");
         }
+
+        Console.WriteLine();
 
         if (argList.Contains("--url") || argList.Contains("-u"))
         {
@@ -231,7 +245,7 @@ class Program
                 return 1;
             }
 
-            result = await templateService.CloneTemplateAsync(newSiteName, repoUrl: url);
+            result = await templateService.CloneTemplateAsync(newSiteName, directory, repoUrl: url);
         }
         else
         {
@@ -241,11 +255,13 @@ class Program
             {
                 // get the template name
                 templateName = argList[templateFlagArg + 1];
-                result = await templateService.CloneTemplateAsync(templateName);
+                result = await templateService.CloneTemplateAsync(templateName, directory);
             }
             else
             {
                 // don't use a template, just create a new Blazor site and initialise
+                Console.WriteLine();
+                Console.WriteLine("No template specified, creating a new Blazor WASM site using the default template.");
                 var process = new Process
                 {
                     StartInfo = new ProcessStartInfo("dotnet", "new blazorwasm")
@@ -267,13 +283,13 @@ class Program
             }
         }
 
-        if (result < 1)
+        if (result != 0)
         {
             Console.WriteLine("❌ Failed to create site from template.");
             return -1;
         }
 
-        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName);
+        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName, directory);
         
         var finalMessage = newResult == 0 ? $"✅ New site {newSiteName} created successfully." : "❌ Failed to create new Blake site";
         
@@ -285,7 +301,12 @@ class Program
     {
         if (args.Length > 1 && !string.IsNullOrWhiteSpace(args[1]) && !args[1].StartsWith('-'))
         {
-            return args[1];
+            var suppliedDirectory = args[1];
+
+            // remove trailing slashes or quotes
+            suppliedDirectory = suppliedDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, '"', '\'');
+
+            return suppliedDirectory;
         }
 
         return Directory.GetCurrentDirectory();

@@ -179,12 +179,12 @@ internal static class SiteGenerator
         return 0;
     }
     
-    public static async Task<int> NewSiteAsync(string newSiteName, string name)
+    public static async Task<int> NewSiteAsync(string newSiteName, string name, string? path = null)
     {
         // Initialize the new site
         // find the csproj file in the cloned directory
-        var currentDirectory = Directory.GetCurrentDirectory();
-        var templateCsprojPath = Directory.GetFiles(currentDirectory, "*.csproj", SearchOption.AllDirectories)
+        var newSiteDirectory = path ?? Directory.GetCurrentDirectory();
+        var templateCsprojPath = Directory.GetFiles(newSiteDirectory, "*.csproj", SearchOption.AllDirectories)
             .FirstOrDefault();
         
         if (templateCsprojPath == null)
@@ -208,7 +208,7 @@ internal static class SiteGenerator
         var templatePlaceholder = "{{" + templatePlaceholderName + "}}";
         
         // replace "{{templatePlaceholder}}" in all files with newSiteName
-        var fileList = Directory.GetFiles(currentDirectory, "*", SearchOption.AllDirectories);
+        var fileList = Directory.GetFiles(newSiteDirectory, "*", SearchOption.AllDirectories);
         foreach (var file in fileList)
         {
             var fileContents = await File.ReadAllTextAsync(file);
@@ -220,7 +220,7 @@ internal static class SiteGenerator
             await File.WriteAllTextAsync(file, fileContents);
         }
 
-        Console.WriteLine($"✅ Site '{newSiteName}' created successfully.");
+        Console.WriteLine($"✅ Template updated to '{newSiteName}'.");
         return 0;
     }
 }

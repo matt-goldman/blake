@@ -7,5 +7,5 @@ public interface ITemplateService
     Task<SiteTemplate?> GetTemplateAsync(Guid id);
     Task<SiteTemplate?> GetTemplateAsync(string name);
 
-    Task<int> CloneTemplateAsync(string name, Guid? templateId = null, string? repoUrl = null);
+    Task<int> CloneTemplateAsync(string name, string? destinationPath = null, Guid? templateId = null, string? repoUrl = null);
 }

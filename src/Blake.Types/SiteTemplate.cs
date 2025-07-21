@@ -2,6 +2,7 @@ namespace Blake.Types;
 
 public record SiteTemplate(
     Guid Id,
+    string ShortName,
     string Name,
     string Description,
     string MainCategory,
