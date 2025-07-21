@@ -1,0 +1,14 @@
+{
+    "Templates": [
+        {
+            "Id": "ac4a6311-b469-49eb-94c4-e35aeac422df",
+            "ShortName": "tailwind-sample",
+            "Name": "Blake Simple Tailwind Sample",
+            "Description": "A sample blog template using Tailwind CSS.",
+            "MainCategory": "Blog",
+            "Author": "Matt Goldman",
+            "LastUpdated": "2025-07-15T12:00:00Z",
+            "RepositoryUrl": "https://github.com/matt-goldman/BlakeSimpleTailwindSample"
+        }
+    ]
+}
