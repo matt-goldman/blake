@@ -15,11 +15,11 @@ public class TemplateService : ITemplateService
         var userProfileFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var templateFilePath = Path.Combine(userProfileFolder, ".blake", "TemplateRegistry.json");
         var fileContent = await File.ReadAllTextAsync(templateFilePath);
-        var templates = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<SiteTemplate>>(fileContent);
-        return templates ?? [];
+        var templates = System.Text.Json.JsonSerializer.Deserialize<TemplateRegistry>(fileContent);
+        return templates?.Templates ?? [];
 #else
-        var templates = await CurrentClient.GetFromJsonAsync<IEnumerable<SiteTemplate>>("TemplateRegistry.json");
-        return templates ?? [];
+        var templates = await CurrentClient.GetFromJsonAsync<TemplateRegistry>("TemplateRegistry.json");
+        return templates?.Templates ?? [];
 #endif
     }
 
@@ -74,10 +74,13 @@ public class TemplateService : ITemplateService
             }
         };
         
+        // Start the git clone process
+        Console.WriteLine($"Cloning template from {repoUrl}...");
+        
         var cloneResult = process.Start();
 
         await process.WaitForExitAsync();
-
+        
         if (process.ExitCode != 0)
         {
             Console.WriteLine("Failed to clone template. Error output:");
@@ -87,6 +90,23 @@ public class TemplateService : ITemplateService
         }
         
         Console.WriteLine($"Template '{templateName}' copied successfully.");
+        
+        Console.WriteLine("Cleaning up the cloned directory...");
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var templateDirectory = Path.Combine(currentDirectory, templateName);
+        if (Directory.Exists(templateDirectory))
+        {
+            // Remove the .git directory to avoid confusion
+            var gitDirectory = Path.Combine(templateDirectory, ".git");
+            if (!Directory.Exists(gitDirectory)) return 0;
+            Directory.Delete(gitDirectory, true);
+            Console.WriteLine("Removed .git directory from the cloned template.");
+        }
+        else
+        {
+            Console.WriteLine($"Template directory '{templateDirectory}' does not exist.");
+            return -1;
+        }
 
         return 0;
     }

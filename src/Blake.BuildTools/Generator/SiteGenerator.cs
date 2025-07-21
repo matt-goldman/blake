@@ -207,7 +207,7 @@ internal static class SiteGenerator
         var templatePlaceholderName = name.Replace(" ", string.Empty);
         var templatePlaceholder = "{{" + templatePlaceholderName + "}}";
         
-        // replace "{{templatePlaceholderName}}" in all files with newSiteName
+        // replace "{{templatePlaceholder}}" in all files with newSiteName
         var fileList = Directory.GetFiles(currentDirectory, "*", SearchOption.AllDirectories);
         foreach (var file in fileList)
         {

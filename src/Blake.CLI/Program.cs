@@ -195,6 +195,7 @@ class Program
                 Console.WriteLine("No templates found.");
             }
             
+            return 0;
         }
         
         var argList = args.ToList();

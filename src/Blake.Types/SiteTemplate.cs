@@ -8,3 +8,5 @@ public record SiteTemplate(
     string Author,
     DateTime LastUpdated,
     string RepositoryUrl);
+
+public record TemplateRegistry(IEnumerable<SiteTemplate> Templates);    
