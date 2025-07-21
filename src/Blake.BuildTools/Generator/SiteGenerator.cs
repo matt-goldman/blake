@@ -1,3 +1,4 @@
+using Blake.BuildTools.Services;
 using Blake.BuildTools.Utils;
 using Blake.MarkdownParser;
 using Markdig;
@@ -175,6 +176,51 @@ internal static class SiteGenerator
         Console.WriteLine("Or just run 'blake serve' to do both.");
         Console.WriteLine("Refer to the documentation for further setup instructions.");
         
+        return 0;
+    }
+    
+    public static async Task<int> NewSiteAsync(string newSiteName, string name)
+    {
+        // Initialize the new site
+        // find the csproj file in the cloned directory
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var templateCsprojPath = Directory.GetFiles(currentDirectory, "*.csproj", SearchOption.AllDirectories)
+            .FirstOrDefault();
+        
+        if (templateCsprojPath == null)
+        {
+            Console.WriteLine("❌ Template Error: No .csproj file found in the cloned template directory.");
+            return -1;
+        }
+        
+        // rename the csproj file to the new site name
+        var newCsprojPath = Path.Combine(Path.GetDirectoryName(templateCsprojPath) ?? string.Empty, $"{newSiteName}.csproj");
+        if (File.Exists(newCsprojPath))
+        {
+            Console.WriteLine($"⚠️  A project file with the name '{newSiteName}.csproj' already exists. It will be overwritten.");
+            File.Delete(newCsprojPath);
+        }
+        
+        File.Move(templateCsprojPath, newCsprojPath);
+        
+        // Remove spaces from template name
+        var templatePlaceholderName = name.Replace(" ", string.Empty);
+        var templatePlaceholder = "{{" + templatePlaceholderName + "}}";
+        
+        // replace "{{templatePlaceholderName}}" in all files with newSiteName
+        var fileList = Directory.GetFiles(currentDirectory, "*", SearchOption.AllDirectories);
+        foreach (var file in fileList)
+        {
+            var fileContents = await File.ReadAllTextAsync(file);
+
+            if (!fileContents.Contains(templatePlaceholder)) continue;
+            
+            fileContents = fileContents.Replace(templatePlaceholder, templatePlaceholderName);
+            
+            await File.WriteAllTextAsync(file, fileContents);
+        }
+
+        Console.WriteLine($"✅ Site '{newSiteName}' created successfully.");
         return 0;
     }
 }

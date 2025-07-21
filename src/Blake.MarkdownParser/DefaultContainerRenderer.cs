@@ -140,7 +140,7 @@ public class DefaultContainerRenderer(bool UseDefaultRenderers, bool UseRazorRen
 
         var containerName = GetContainerName(container.Info);
 
-        renderer.Write($"<{containerName}>").WriteLine();
+        renderer.Write($"<{containerName} {container.Arguments}>").WriteLine();
 
         renderer.WriteChildren(container);
 

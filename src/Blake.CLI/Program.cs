@@ -1,5 +1,7 @@
 ﻿using Blake.BuildTools.Generator;
 using System.Diagnostics;
+using Blake.BuildTools.Services;
+using Blake.Types;
 
 namespace Blake.CLI;
 
@@ -27,6 +29,8 @@ class Program
                 return await BakeBlakeAsync(args);
             case "serve":
                 return await ServeBakeAsync(args);
+            case "new":
+                return await NewSiteAsync(args);
             default:
                 await Console.Error.WriteLineAsync($"Unknown option: {option}");
         
@@ -48,11 +52,18 @@ class Program
         Console.WriteLine();
         Console.WriteLine("  bake <PATH>          Generate static content for a Blake site.");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --disableDefaultRenderers, -dr  Disable the built-in Bootstrap container renderers");
+        Console.WriteLine("                         --disableDefaultRenderers, -dr   Disable the built-in Bootstrap container renderers");
+        Console.WriteLine();
+        Console.WriteLine("  new <PATH>           Generates a new Blake site");
+        Console.WriteLine("                       Options:");
+        Console.WriteLine("                         --template, -t   The name of the template to create a site from (optional). Uses the default Blazor WASM template if not specified.");
+        Console.WriteLine("                         --siteName, -sn  The name of the new site (optional). Uses the directory name if not specified. If configured in the template, replaces the template name with the provided name.");
+        Console.WriteLine("                         --url, -u        The URL of the repo that hosts the template (optional). Can be used to install templates outside the public Blake registry. Uses Git, so should work with any repo you have access to.");
+        Console.WriteLine("                         --list           Lists all available templates in the public Blake registry");
         Console.WriteLine();
         Console.WriteLine("  serve <PATH>         Bake and run the Blazor app in development mode.");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --disableDefaultRenderers, -dr  Disable the built-in Bootstrap container renderers");
+        Console.WriteLine("                         --disableDefaultRenderers, -dr   Disable the built-in Bootstrap container renderers");
         Console.WriteLine();
         Console.WriteLine("  --help               Show this help message.");
     }
@@ -156,6 +167,118 @@ class Program
         return 0;
     }
 
+    private static async Task<int> NewSiteAsync(string[] args)
+    {
+        var templateService = new TemplateService();
+        
+        if (args[1] == "--list")
+        {
+            var templates = await templateService.GetTemplatesAsync();
+            
+            var templateList = templates.OrderBy(t => t.Name).ToList() ?? new List<SiteTemplate>();
+            
+            // TODO: Improve this with Specter.Console or similar
+            if (templateList.Count > 0)
+            {
+                Console.WriteLine("Available templates:");
+                Console.WriteLine("Template Name        | Description         | Main Category       | Author");
+                Console.WriteLine("---------------------|---------------------|---------------------|---------------------");
+                foreach (var template in templateList)
+                {
+                    Console.WriteLine($"{template.Name,-20} | {template.Description,-20} | {template.MainCategory,-20} | {template.Author}");
+                    Console.WriteLine($"Last Updated: {template.LastUpdated:yyyy-MM-dd HH:mm:ss} | Repository: {template.RepositoryUrl}");
+                    Console.WriteLine(new string('-', 80));
+                }
+            }
+            else
+            {
+                Console.WriteLine("No templates found.");
+            }
+            
+        }
+        
+        var argList = args.ToList();
+        var newSiteName = string.Empty;
+        var templateName = string.Empty;
+        var directory = GetPathFromArgs(args);
+
+        var result = 0;
+
+        if (argList.Contains("--siteName") || argList.Contains("-sn"))
+        {
+            var siteNameFlagIndex = argList.FindIndex(arg => arg is "--siteName" or "-sn");
+
+            if (siteNameFlagIndex >= 0)
+            {
+                newSiteName = argList[siteNameFlagIndex + 1];
+            }
+        }
+        else
+        {
+            var directoryParts = directory.Split(Path.DirectorySeparatorChar);
+            newSiteName = directoryParts[^1];
+        }
+
+        if (argList.Contains("--url") || argList.Contains("-u"))
+        {
+            var urlFlagArgIndex = argList.FindIndex(arg => arg.StartsWith("--url") || arg.StartsWith("-u"));
+            var url = argList[urlFlagArgIndex + 1];
+
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                Console.WriteLine($"❌ Error: Url '{url}' is missing or invalid.");
+                return 1;
+            }
+
+            result = await templateService.CloneTemplateAsync(newSiteName, repoUrl: url);
+        }
+        else
+        {
+            var templateFlagArg = argList.FindIndex(arg => arg.StartsWith("--template") || arg.StartsWith("-t"));
+
+            if (templateFlagArg > 0)
+            {
+                // get the template name
+                templateName = argList[templateFlagArg + 1];
+                result = await templateService.CloneTemplateAsync(templateName);
+            }
+            else
+            {
+                // don't use a template, just create a new Blazor site and initialise
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo("dotnet", "new blazorwasm")
+                };
+                
+                var processResult = process.Start();
+                
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    var initResult = await SiteGenerator.InitAsync($"{newSiteName}.csproj", true);
+
+                    var resultMessage = initResult == 0 ? $"✅ New site {newSiteName} created successfully." : "❌ Failed to create new Blake site";
+                    
+                    Console.WriteLine(resultMessage);
+                    return initResult;;
+                }
+            }
+        }
+
+        if (result < 1)
+        {
+            Console.WriteLine("❌ Failed to create site from template.");
+            return -1;
+        }
+
+        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName);
+        
+        var finalMessage = newResult == 0 ? $"✅ New site {newSiteName} created successfully." : "❌ Failed to create new Blake site";
+        
+        Console.WriteLine(finalMessage);
+        return newResult;
+    }
 
     private static string GetPathFromArgs(string[] args)
     {
