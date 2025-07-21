@@ -37,7 +37,7 @@ internal static class SiteGenerator
         Console.WriteLine($"📂 Output path: {options.OutputPath}");
         Console.WriteLine("🔎 Scanning content folders...");
 
-        var allPageMetadata = new List<PageModel>();
+        var pages = new List<PageModel>();
         
         // iterate through all folders in the project path, find template.razor files
         if (!Directory.Exists(options.ProjectPath))
@@ -89,14 +89,20 @@ internal static class SiteGenerator
                 var mdContent = await File.ReadAllTextAsync(mdPath);
 
                 var frontmatter = FrontmatterHelper.ParseFrontmatter(mdContent, cleanedContent: out _);
-                var metadata = FrontmatterHelper.MapToMetadata<PageModel>(frontmatter);
+                var page = FrontmatterHelper.MapToMetadata<PageModel>(frontmatter);
 
-                metadata.Slug = slug;
-                allPageMetadata.Add(metadata);
+                if (page.Draft && !options.IncludeDrafts)
+                {
+                    Console.WriteLine($"⚠️  Skipping draft page: {fileName} in {folder}");
+                    continue;
+                }
+
+                page.Slug = slug;
+                pages.Add(page);
 
                 var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
 
-                var generatedRazor = RazorPageBuilder.BuildRazorPage(templatePath, parsedContent, slug, metadata);
+                var generatedRazor = RazorPageBuilder.BuildRazorPage(templatePath, parsedContent, slug, page);
 
                 var outputDir = Path.Combine(options.OutputPath, folder.ToLowerInvariant());
                 Directory.CreateDirectory(outputDir);
@@ -114,7 +120,7 @@ internal static class SiteGenerator
         }
 
         // Write content index
-        ContentIndexBuilder.WriteIndex(options.OutputPath, allPageMetadata);
+        ContentIndexBuilder.WriteIndex(options.OutputPath, pages);
         Console.WriteLine($"✅ Generated content index in {options.OutputPath}");
     }
 

@@ -53,6 +53,7 @@ class Program
         Console.WriteLine("  bake <PATH>          Generate static content for a Blake site.");
         Console.WriteLine("                       Options:");
         Console.WriteLine("                         --disableDefaultRenderers, -dr   Disable the built-in Bootstrap container renderers");
+        Console.WriteLine("                         --includeDrafts                  Bakes markdown files that contain 'draft: true' in the frontmatter (they are skipped by default)");
         Console.WriteLine();
         Console.WriteLine("  new <PATH>           Generates a new Blake site");
         Console.WriteLine("                       Options:");
@@ -132,12 +133,12 @@ class Program
 
         Console.WriteLine($"🛠  Starting build for: {targetPath}");
 
-        // TODO: Add blake.config.json support
         var options = new GenerationOptions
         {
-            ProjectPath = targetPath,
-            OutputPath = Path.Combine(targetPath, ".generated"),
-            UseDefaultRenderers = !args.Contains("--disableDefaultRenderers") && !args.Contains("-dr")
+            ProjectPath         = targetPath,
+            OutputPath          = Path.Combine(targetPath, ".generated"),
+            UseDefaultRenderers = !args.Contains("--disableDefaultRenderers") && !args.Contains("-dr"),
+            IncludeDrafts       = args.Contains("--includeDrafts")
         };
 
         await SiteGenerator.BuildAsync(options);
