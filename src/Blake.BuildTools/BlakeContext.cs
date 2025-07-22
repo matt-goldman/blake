@@ -14,7 +14,7 @@ public class BlakeContext
     /// <summary>
     /// The name of the project.
     /// </summary>
-    public required string ProjectName { get; init; }
+    public string? ProjectName { get; set; }
 
     /// <summary>
     /// Gets the file system path to the project.
@@ -24,32 +24,25 @@ public class BlakeContext
     /// <summary>
     /// Gets the collection of arguments as key-value pairs.
     /// </summary>
-    public required IReadOnlyDictionary<string, string> Arguments { get; init; }
-
-    internal List<MarkdownPage> MarkdownPages { get; set; } = [];
-    internal List<GeneratedPage> GeneratedPages { get; set; } = [];
+    public required IReadOnlyList<string> Arguments { get; init; }
 
     /// <summary>
-    /// Retrieves a list of all markdown pages.
+    /// Provides access to the pre-baked pages in the project.
     /// </summary>
-    /// <returns>A list of <see cref="MarkdownPage"/> objects representing the markdown pages. The list will be empty if no pages
-    /// are available.</returns>
-    /// <remarks>This method provides access to the markdown pages that have been processed or generated within the context of the Blake project.</remarks>
-    public List<MarkdownPage> GetMarkdownPages() => [.. MarkdownPages];
+    /// <remarks>Provided there is content in the project, should be available to BeforeBakeAsync.</remarks>
+    public List<MarkdownPage> MarkdownPages { get; init; } = [];
 
     /// <summary>
-    /// Retrieves a list of all generated pages.
+    /// Provides access to the generated pages in the project.
     /// </summary>
-    /// <returns>A list of <see cref="GeneratedPage"/> objects representing the generated pages.  The list is a copy of the
-    /// internal collection and can be safely modified by the caller.</returns>
-    /// <remarks>Will be empty if accessed from BeforeBake. This method provides access to the pages that have been processed and rendered into HTML format.</remarks>
-    public List<GeneratedPage> GetGeneratedPages() => [.. GeneratedPages];
+    /// <remarks>Will not contain any entries until after the baking process is complete.</remarks>
+    public List<GeneratedPage> GeneratedPages { get; init; } = [];
 
     /// <summary>
     /// Gets the <see cref="MarkdownPipelineBuilder"/> instance used to configure the Markdown processing pipeline.
     /// </summary>
-    public required MarkdownPipelineBuilder Builder { get; init; } = new MarkdownPipelineBuilder();
+    public required MarkdownPipelineBuilder PipelineBuilder { get; init; } = new MarkdownPipelineBuilder();
 }
 
-public record MarkdownPage(string Path, string RawMarkdown);
+public record MarkdownPage(string MdPath, string TemplatePath, string Slug, string RawMarkdown);
 public record GeneratedPage(PageModel Page, string RazorHtml);

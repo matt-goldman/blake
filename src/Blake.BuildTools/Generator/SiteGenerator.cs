@@ -51,6 +51,19 @@ internal static class SiteGenerator
             Console.WriteLine($"✅ Created output directory: {options.OutputPath}");
         }
 
+        var context = new BlakeContext
+        {
+            ProjectPath = options.ProjectPath,
+            Arguments = [.. options.Arguments],
+            PipelineBuilder = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .UseFigures()
+                .UseYamlFrontMatter()
+                .UseBootstrap() // Safe to add to all projects, even if not using Bootstrap
+                .UseImageCaptions()
+                .SetupContainerRenderers(options.UseDefaultRenderers, useRazorContainers: true)
+        };
+
         var folders = Directory.GetDirectories(options.ProjectPath)
             .Select(Path.GetFileName)
             .Where(folder =>
@@ -60,12 +73,12 @@ internal static class SiteGenerator
                 !folder.Equals("bin", StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
-        var mdPipeline = GetMarkdownPipeline(options.UseDefaultRenderers);
+        // Pre-bake: Load existing markdown files into the context
 
         foreach (var folder in folders)
         {
             if (folder == null) continue;
-            
+
             var fullFolderPath = Path.Combine(options.ProjectPath, folder);
             if (!Directory.Exists(fullFolderPath))
             {
@@ -81,6 +94,13 @@ internal static class SiteGenerator
             }
 
             var markdownFiles = Directory.GetFiles(fullFolderPath, "*.md");
+
+            if (markdownFiles.Length == 0)
+            {
+                Console.WriteLine($"⚠️  No markdown files found in {folder}, skipping.");
+                continue;
+            }
+
             foreach (var mdPath in markdownFiles)
             {
                 var fileName = Path.GetFileNameWithoutExtension(mdPath);
@@ -88,35 +108,55 @@ internal static class SiteGenerator
 
                 var mdContent = await File.ReadAllTextAsync(mdPath);
 
-                var frontmatter = FrontmatterHelper.ParseFrontmatter(mdContent, cleanedContent: out _);
-                var page = FrontmatterHelper.MapToMetadata<PageModel>(frontmatter);
-
-                if (page.Draft && !options.IncludeDrafts)
+                if (string.IsNullOrWhiteSpace(mdContent))
                 {
-                    Console.WriteLine($"⚠️  Skipping draft page: {fileName} in {folder}");
+                    Console.WriteLine($"⚠️  Skipping empty markdown file: {fileName} in {folder}");
                     continue;
                 }
 
-                page.Slug = slug;
-                pages.Add(page);
-
-                var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
-
-                var generatedRazor = RazorPageBuilder.BuildRazorPage(templatePath, parsedContent, slug, page);
-
-                var outputDir = Path.Combine(options.OutputPath, folder.ToLowerInvariant());
-                Directory.CreateDirectory(outputDir);
-
-                // create output filename - remove spaces or dashes, and convert to PascalCase instead
-                // Razor filenames must be PascalCase and cannot contain spaces or dashes; this avoids enforcing this convention in markdown files
-                var fileNameParts = fileName.Split([' ', '-'], StringSplitOptions.RemoveEmptyEntries);
-                var outputFileName = string.Join("", fileNameParts.Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
-
-                var outputPath = Path.Combine(outputDir, $"{outputFileName}.razor");
-                await File.WriteAllTextAsync(outputPath, generatedRazor);
-
-                Console.WriteLine($"✅ Generated page: {outputPath}");
+                context.MarkdownPages.Add(new MarkdownPage(mdPath, templatePath, slug, mdContent));
             }
+        }
+
+        // Bake: Process each markdown file and generate Razor pages
+        
+        var mdPipeline = context.PipelineBuilder.Build();
+
+        foreach (var mdPage in context.MarkdownPages)
+        { 
+            var mdContent = mdPage.RawMarkdown;
+
+            var frontmatter = FrontmatterHelper.ParseFrontmatter(mdContent, cleanedContent: out _);
+            var page = FrontmatterHelper.MapToMetadata<PageModel>(frontmatter);
+
+            var fileName = Path.GetFileNameWithoutExtension(mdPage.MdPath) ?? "index";
+            var folder = Path.GetDirectoryName(mdPage.MdPath)?.Replace(options.ProjectPath, string.Empty).Trim(Path.DirectorySeparatorChar) ?? string.Empty;
+
+            if (page.Draft && !options.IncludeDrafts)
+            {
+                Console.WriteLine($"⚠️  Skipping draft page: {fileName} in {folder}");
+                continue;
+            }
+
+            page.Slug = mdPage.Slug;
+            pages.Add(page);
+
+            var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
+
+            var generatedRazor = RazorPageBuilder.BuildRazorPage(mdPage.TemplatePath, parsedContent, mdPage.Slug, page);
+
+            var outputDir = Path.Combine(options.OutputPath, folder.ToLowerInvariant());
+            Directory.CreateDirectory(outputDir);
+
+            // create output filename - remove spaces or dashes, and convert to PascalCase instead
+            // Razor filenames must be PascalCase and cannot contain spaces or dashes; this avoids enforcing this convention in markdown files
+            var fileNameParts = fileName.Split([' ', '-'], StringSplitOptions.RemoveEmptyEntries);
+            var outputFileName = string.Join("", fileNameParts.Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
+
+            var outputPath = Path.Combine(outputDir, $"{outputFileName}.razor");
+            await File.WriteAllTextAsync(outputPath, generatedRazor);
+
+            Console.WriteLine($"✅ Generated page: {outputPath}");
         }
 
         // Write content index

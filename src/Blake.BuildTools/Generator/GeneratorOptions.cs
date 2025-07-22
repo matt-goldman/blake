@@ -1,12 +1,14 @@
 namespace Blake.BuildTools.Generator;
 
-public class GenerationOptions
+internal class GenerationOptions
 {
-    public string ProjectPath { get; set; } = default!;
+    public string ProjectPath { get; init; } = default!;
 
-    public string OutputPath { get; set; } = default!;
+    public string OutputPath { get; init; } = default!;
 
-    public bool UseDefaultRenderers { get; set; } = true;
+    public bool UseDefaultRenderers { get; init; } = true;
 
-    public bool IncludeDrafts { get; set; } = false;
+    public bool IncludeDrafts { get; init; } = false;
+
+    public string[] Arguments { get; init; } = [];
 }

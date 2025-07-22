@@ -138,7 +138,8 @@ class Program
             ProjectPath         = targetPath,
             OutputPath          = Path.Combine(targetPath, ".generated"),
             UseDefaultRenderers = !args.Contains("--disableDefaultRenderers") && !args.Contains("-dr"),
-            IncludeDrafts       = args.Contains("--includeDrafts")
+            IncludeDrafts       = args.Contains("--includeDrafts"),
+            Arguments           = [.. args.Skip(1)]
         };
 
         await SiteGenerator.BuildAsync(options);
@@ -148,7 +149,7 @@ class Program
         return 0;
     }
 
-    public static async Task<int> ServeBakeAsync(string[] args)
+    private static async Task<int> ServeBakeAsync(string[] args)
     {
         var path = args.Length > 1 ? args[1].Trim('"') : Directory.GetCurrentDirectory();
 
