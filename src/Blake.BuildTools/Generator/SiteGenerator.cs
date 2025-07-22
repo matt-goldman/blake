@@ -37,7 +37,6 @@ internal static class SiteGenerator
         Console.WriteLine($"📂 Output path: {options.OutputPath}");
         Console.WriteLine("🔎 Scanning content folders...");
 
-        var pages = new List<PageModel>();
         
         // iterate through all folders in the project path, find template.razor files
         if (!Directory.Exists(options.ProjectPath))
@@ -74,7 +73,6 @@ internal static class SiteGenerator
             .ToArray();
 
         // Pre-bake: Load existing markdown files into the context
-
         foreach (var folder in folders)
         {
             if (folder == null) continue;
@@ -118,8 +116,32 @@ internal static class SiteGenerator
             }
         }
 
+        // Load plugins
+        List<PluginContext> plugins = PluginLoader.LoadPlugins(options.ProjectPath);
+
+        // Run BeforeBakeAsync for each plugin
+        if (plugins.Count > 0)
+        {
+            Console.WriteLine($"🔌 Loaded {plugins.Count} plugin(s)");
+            foreach (var plugin in plugins)
+            {
+                try
+                {
+                    await plugin.Plugin.BeforeBakeAsync(context);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️  Error in plugin '{plugin.PluginName}': {ex.Message}");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine("No plugins found.");
+        }
+
+
         // Bake: Process each markdown file and generate Razor pages
-        
         var mdPipeline = context.PipelineBuilder.Build();
 
         foreach (var mdPage in context.MarkdownPages)
@@ -139,8 +161,7 @@ internal static class SiteGenerator
             }
 
             page.Slug = mdPage.Slug;
-            pages.Add(page);
-
+            
             var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
 
             var generatedRazor = RazorPageBuilder.BuildRazorPage(mdPage.TemplatePath, parsedContent, mdPage.Slug, page);
@@ -157,10 +178,28 @@ internal static class SiteGenerator
             await File.WriteAllTextAsync(outputPath, generatedRazor);
 
             Console.WriteLine($"✅ Generated page: {outputPath}");
+
+            context.GeneratedPages.Add(new GeneratedPage(page, generatedRazor));
+        }
+
+        // Run AfterBakeAsync for each plugin
+        if (plugins.Count > 0)
+        {
+            foreach (var plugin in plugins)
+            {
+                try
+                {
+                    await plugin.Plugin.AfterBakeAsync(context);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️  Error in plugin '{plugin.PluginName}': {ex.Message}");
+                }
+            }
         }
 
         // Write content index
-        ContentIndexBuilder.WriteIndex(options.OutputPath, pages);
+        ContentIndexBuilder.WriteIndex(options.OutputPath, [.. context.GeneratedPages.Select(gp => gp.Page)]);
         Console.WriteLine($"✅ Generated content index in {options.OutputPath}");
     }
 
