@@ -1,30 +1,11 @@
-using Blake.BuildTools.Services;
 using Blake.BuildTools.Utils;
 using Blake.MarkdownParser;
 using Markdig;
-using Markdig.Prism;
 
 namespace Blake.BuildTools.Generator;
 
 internal static class SiteGenerator
 {
-    private static MarkdownPipeline GetMarkdownPipeline(bool? useDefaultRenderers = true) => new MarkdownPipelineBuilder()
-        .UseAdvancedExtensions()
-        //.UseCustomContainers()
-        .UseFigures()
-        .UseYamlFrontMatter()
-        .UseBootstrap()
-        //.UsePrism(new PrismOptions
-        //{
-        //    UseLineNumbers = true,
-        //    UseCopyButton = true,
-        //    UseLineHighlighting = true,
-        //    UseLineDiff = true
-        //})
-        .UseImageCaptions()
-        .SetupContainerRenderers(useDefaultRenderers, useRazorContainers: true)
-        .Build();
-
     public static async Task BuildAsync(GenerationOptions? options = null)
     {
         options ??= new GenerationOptions
