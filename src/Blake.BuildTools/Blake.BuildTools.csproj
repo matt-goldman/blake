@@ -40,18 +40,14 @@
 		<PackageReference Include="Blake.Types" Version="*" />
 	</ItemGroup>
 
-	<!--<ItemGroup>
-		<None Include="..\Blake.MarkdownParser\bin\$(Configuration)\net$(NetCoreVersion)\Blake.MarkdownParser.dll" Pack="true" PackagePath="lib/net$(NetCoreVersion)" Visible="false"/>
-		<None Include="..\Blake.Types\bin\$(Configuration)\net$(NetCoreVersion)\Blake.Types.dll" Pack="true" PackagePath="lib/net$(NetCoreVersion)" Visible="false" />
-	</ItemGroup>-->
-
     <ItemGroup>
       <PackageReference Include="YamlDotNet" Version="16.3.0" />
+	  <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
     
     <!-- Set InternalVisibleTo to allow access to internal members for testing -->
     <ItemGroup>
       <InternalsVisibleTo Include="Blake.CLI" />
     </ItemGroup>
-    
+
 </Project>

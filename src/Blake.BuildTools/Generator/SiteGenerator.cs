@@ -1,6 +1,7 @@
 using Blake.BuildTools.Utils;
 using Blake.MarkdownParser;
 using Markdig;
+using Markdig.Renderers;
 
 namespace Blake.BuildTools.Generator;
 
@@ -97,8 +98,10 @@ internal static class SiteGenerator
             }
         }
 
+        var config = GetConfiguration(options.Arguments);
+
         // Load plugins
-        List<PluginContext> plugins = PluginLoader.LoadPlugins(options.ProjectPath);
+        List<PluginContext> plugins = PluginLoader.LoadPlugins(options.ProjectPath, config);
 
         // Run BeforeBakeAsync for each plugin
         if (plugins.Count > 0)
@@ -108,6 +111,7 @@ internal static class SiteGenerator
             {
                 try
                 {
+                    Console.WriteLine($"🔌 Running BeforeBakeAsync for plugin '{plugin.PluginName}'");
                     await plugin.Plugin.BeforeBakeAsync(context);
                 }
                 catch (Exception ex)
@@ -118,12 +122,15 @@ internal static class SiteGenerator
         }
         else
         {
-            Console.WriteLine("No plugins found.");
+            Console.WriteLine("No plugins loaded.");
         }
 
 
         // Bake: Process each markdown file and generate Razor pages
         var mdPipeline = context.PipelineBuilder.Build();
+        using var sw = new StringWriter();
+        var renderer = new HtmlRenderer(sw);
+        mdPipeline.Setup(renderer);
 
         foreach (var mdPage in context.MarkdownPages)
         { 
@@ -142,10 +149,19 @@ internal static class SiteGenerator
             }
 
             page.Slug = mdPage.Slug;
-            
-            var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
 
-            var generatedRazor = RazorPageBuilder.BuildRazorPage(mdPage.TemplatePath, parsedContent, mdPage.Slug, page);
+            //var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
+            // 🔄 Parse the markdown
+            var document = Markdig.Parsers.MarkdownParser.Parse(mdContent, mdPipeline);
+
+            // 🖋️ Render it
+            renderer.Render(document);
+            renderer.Writer.Flush();
+
+            // 🔙 Get the rendered HTML
+            var renderedHtml = sw.ToString();
+
+            var generatedRazor = RazorPageBuilder.BuildRazorPage(mdPage.TemplatePath, renderedHtml, mdPage.Slug, page);
 
             var outputDir = Path.Combine(options.OutputPath, folder.ToLowerInvariant());
             Directory.CreateDirectory(outputDir);
@@ -156,11 +172,10 @@ internal static class SiteGenerator
             var outputFileName = string.Join("", fileNameParts.Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
 
             var outputPath = Path.Combine(outputDir, $"{outputFileName}.razor");
-            await File.WriteAllTextAsync(outputPath, generatedRazor);
-
+            
             Console.WriteLine($"✅ Generated page: {outputPath}");
 
-            context.GeneratedPages.Add(new GeneratedPage(page, generatedRazor));
+            context.GeneratedPages.Add(new GeneratedPage(page, outputPath, generatedRazor));
         }
 
         // Run AfterBakeAsync for each plugin
@@ -170,12 +185,27 @@ internal static class SiteGenerator
             {
                 try
                 {
+                    Console.WriteLine($"🔌 Running AfterBakeAsync for plugin '{plugin.PluginName}'");
                     await plugin.Plugin.AfterBakeAsync(context);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"⚠️  Error in plugin '{plugin.PluginName}': {ex.Message}");
                 }
+            }
+        }
+
+        // write all generated Razor files to disk
+        foreach (var generatedPage in context.GeneratedPages)
+        {
+            try
+            {
+                await File.WriteAllTextAsync(generatedPage.OutputPath, generatedPage.RazorHtml);
+                Console.WriteLine($"✅ Successfully wrote page: {generatedPage.OutputPath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Error writing page '{generatedPage.Page.Slug}': {ex.Message}");
             }
         }
 
@@ -289,4 +319,26 @@ internal static class SiteGenerator
         Console.WriteLine($"✅ Template updated to '{newSiteName}'.");
         return 0;
     }
+
+    public static string GetConfiguration(string[] args)
+    {
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            var arg = args[i];
+
+            if (arg == "--configuration" || arg == "-c")
+            {
+                var value = args[i + 1];
+
+                if (string.Equals(value, "debug", StringComparison.OrdinalIgnoreCase))
+                    return "Debug";
+
+                if (string.Equals(value, "release", StringComparison.OrdinalIgnoreCase))
+                    return "Release";
+            }
+        }
+
+        return "Debug"; // default fallback
+    }
+
 }
