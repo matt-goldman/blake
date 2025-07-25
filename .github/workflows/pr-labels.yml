@@ -1,0 +1,20 @@
+name: Label PRs
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+jobs:
+  add-default-preview-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add 'preview' label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: preview
+
+      - name: Apply content-based labels from labeler.yml
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,92 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+  workflow_dispatch:
+
+jobs:
+  
+  generate-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get last merged PR labels
+        id: prlabels
+        run: |
+          PR=$(gh pr list --state merged --base main --limit 1 --json number --jq '.[0].number')
+          LABELS=$(gh pr view $PR --json labels --jq '[.labels[].name]')
+          echo "PR_NUMBER=$PR" >> $GITHUB_ENV
+          echo "LABELS=$LABELS" >> $GITHUB_ENV
+
+          # Fail if both preview and release are set
+          if [[ "$LABELS" == *"preview"* && "$LABELS" == *"release"* ]]; then
+            echo "❌ Both 'preview' and 'release' labels present. Only one allowed."
+            exit 1
+          fi
+
+          # Fail if neither preview nor release is set
+          if [[ "$LABELS" != *"preview"* && "$LABELS" != *"release"* ]]; then
+            echo "❌ PR must have either 'preview' or 'release' label."
+            exit 1
+          fi
+
+          # Set PRERELEASE
+          if [[ "$LABELS" == *"preview"* ]]; then
+            echo "PRERELEASE=true" >> $GITHUB_ENV
+          else
+            echo "PRERELEASE=false" >> $GITHUB_ENV
+          fi
+
+          # Set bump type
+          if [[ "$LABELS" == *"Semver-Major"* ]]; then
+            echo "BUMP=major" >> $GITHUB_ENV
+          elif [[ "$LABELS" == *"Semver-Minor"* ]]; then
+            echo "BUMP=minor" >> $GITHUB_ENV
+          else
+            echo "BUMP=patch" >> $GITHUB_ENV
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: GitHub Tag Bump
+        id: tag_bump
+        uses: anothrNick/github-tag-action@1.73.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INITIAL_VERSION: 1.0.0
+          DEFAULT_BUMP: ${{ env.BUMP }}
+          PRERELEASE: ${{ env.PRERELEASE }}
+          PRERELEASE_SUFFIX: 'preview'
+
+    outputs:
+      new_version: ${{ steps.tag_bump.outputs.new_tag }}
+
+  publish:
+    needs: generate-version
+    runs-on: ubuntu-latest
+    strategy:
+          matrix:
+            project:
+              - name: Blake.Types
+                path: src/Blake.Types/Blake.Types.csproj
+              - name: Blake.MarkdownParser
+                path: src/Blake.MarkdownParser/Blake.MarkdownParser.csproj
+              - name: Blake.BuildTools
+                path: src/Blake.BuildTools/Blake.BuildTools.csproj
+              - name: Blake.CLI
+                path: src/Blake.CLI/Blake.CLI.csproj
+    steps:
+      - name: Publish
+        uses: ./.github/workflows/reusable-publish.yml
+        with:
+          project_path: ${{ matrix.project.path }}
+          version: ${{ needs.generate-version.outputs.new_version }}
+          nuget_key:  ${{ secrets.NUGET_API_KEY }}
