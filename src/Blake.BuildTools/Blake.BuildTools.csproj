@@ -16,19 +16,24 @@
         <RepositoryUrl>https://github.com/matt-goldman/Blake</RepositoryUrl>
         <PackageTags>blazor; ssg; razor;</PackageTags>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-      </PropertyGroup>
+    	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	      <PackageIcon>icon.png</PackageIcon>
+  	</PropertyGroup>
 
-      <ItemGroup>
-        <None Include="..\..\LICENSE">
-          <Pack>True</Pack>
-          <PackagePath>\</PackagePath>
-        </None>
-        <None Include="..\..\README.md">
-          <Pack>True</Pack>
-          <PackagePath>\</PackagePath>
-        </None>
-      </ItemGroup>
+    <ItemGroup>
+      <None Include="..\..\assets\icon.png" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\..\LICENSE">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+      <None Include="..\..\README.md">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+    </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
       <ProjectReference Include="..\Blake.MarkdownParser\Blake.MarkdownParser.csproj" />
@@ -36,8 +41,8 @@
     </ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
-		<PackageReference Include="Blake.MarkdownParser" Version="*" />
-		<PackageReference Include="Blake.Types" Version="*" />
+		<PackageReference Include="Blake.MarkdownParser" Version="*-*" />
+		<PackageReference Include="Blake.Types" Version="*-*" />
 	</ItemGroup>
 
     <ItemGroup>
