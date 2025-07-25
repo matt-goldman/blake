@@ -85,7 +85,7 @@ jobs:
                 path: src/Blake.CLI/Blake.CLI.csproj
     steps:
       - name: Publish
-        uses: owner/repo/.github/workflows/reusable-publish.yml@main
+        uses: ./.github/workflows/reusable-publish.yml
         with:
           project_path: ${{ matrix.project.path }}
           version: ${{ needs.generate-version.outputs.new_version }}
