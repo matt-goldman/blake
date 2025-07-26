@@ -8,6 +8,9 @@ jobs:
   add-default-preview-label:
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        
       - name: Add 'preview' label
         uses: actions-ecosystem/action-add-labels@v1
         with:
