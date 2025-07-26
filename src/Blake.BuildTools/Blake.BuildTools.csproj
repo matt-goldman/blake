@@ -16,8 +16,8 @@
         <RepositoryUrl>https://github.com/matt-goldman/Blake</RepositoryUrl>
         <PackageTags>blazor; ssg; razor;</PackageTags>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    	  <PackageReadmeFile>README.md</PackageReadmeFile>
-	      <PackageIcon>icon.png</PackageIcon>
+    	<PackageReadmeFile>README.md</PackageReadmeFile>
+	    <PackageIcon>icon.png</PackageIcon>
   	</PropertyGroup>
 
     <ItemGroup>
@@ -47,8 +47,9 @@
 
     <ItemGroup>
       <PackageReference Include="YamlDotNet" Version="16.3.0" />
-	  <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    </ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.Components" Version="9.0.0" />
+	  <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.0" />
+	</ItemGroup>
     
     <!-- Set InternalVisibleTo to allow access to internal members for testing -->
     <ItemGroup>
