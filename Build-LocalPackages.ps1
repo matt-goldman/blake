@@ -47,6 +47,9 @@ if ($Version -notlike "*-alpha*") {
 Write-Host "Packing all projects with version $Version..."
 
 foreach ($proj in $projects) {
+    Write-Host "`nPacking project: $proj"
+    dotnet restore $proj
+    dotnet build $proj -c Release
     dotnet pack $proj -c Release -p:PackageVersion=$Version -o $OutputPath
 }
 
