@@ -28,8 +28,8 @@ Blake is a Blazor-based static site generator (SSG) that combines Markdown conte
 
 ### Template registry
 
-- Separate `Blake.Templates` repo containing `registry.json`.
-- Template metadata: name, description, author, repo URL, last updated, tags, optional preview URL.
+- `TemplateRegistry.json` in the root of the project.
+- Template metadata: name, short-name, description, author, repo URL, last updated, primary category, tags, optional preview URL (not done - considering arbitrary metadata, but I think it's too much just for here; can be in the template's README).
 - Community contributes templates via PRs.
 - GitHub Actions workflow validates templates: clones, injects test content, runs `blake build`, `dotnet build`, Playwright checks.
 - CLI supports `--template` (registry) and `--templateUrl` (custom direct URL).
@@ -50,11 +50,20 @@ Blake is a Blazor-based static site generator (SSG) that combines Markdown conte
 ## ⚡ Next Steps
 
 - [ ] Implement `blake serve` with Markdown watch support.
-- [ ] Complete `config.yaml` parsing and `SiteConfig` generator.
-- [ ] Implement final template registry CLI integration (`blake list templates`, `blake new site --template`).
+  - [ ] Implement file watcher to rebuild on Markdown changes.
+  - [ ] Integrate with Blazor dev server for live reload.
+  - [x] Add blake serve command to CLI.
+- [x] Implement final template registry CLI integration (`blake new --list`, `blake new  --template`, etc.).
 - [ ] Add incremental build support.
+  - [ ] TODO: Need to work out the actual strategy here
 - [ ] Improve error handling and CLI UX.
+  - [ ] TODO: Add verbosity flags, better error messages.
+  - [ ] TODO: What else?
 - [ ] Create starter templates (blog, docs, portfolio).
+  - [x] Starter Tailwind blog template.
+  - [x] BlakeDocs template for documentation sites.
+  - [x] BlakePlugin.DocsRenderer
+  - [ ] TODO: What additional templates would be useful? Just as a starter.
 - [ ] Add contributor documentation and starter guides.
 
 ---
@@ -64,6 +73,7 @@ Blake is a Blazor-based static site generator (SSG) that combines Markdown conte
 - Dynamic Markdown page generation with correct routing works.
 - Blazor build and runtime integration fully confirmed.
 - Dynamic nav and metadata proven.
+- Plugin architecture validated.
 
 ---
 

@@ -7,7 +7,7 @@ Blake aims to stay small, fast, and focused, but there is value in supporting ex
 - 🔌 **Plugin Support**
   - Interface: `IBlakePlugin`
   - Purpose: Add domain-specific logic (e.g., RSS, search indexing, sitemap)
-  - Status: On the radar — not implemented
+  - Status: ✅ Done! Plugin architecture validated with `BlakePlugin.DocsRenderer`.
 
 - 📦 **Optional NuGet Packages**
   - For advanced users who want to include features like:

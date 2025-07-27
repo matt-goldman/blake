@@ -41,7 +41,7 @@ public class DefaultContainerExtension(bool UseDefaultRenderers, bool UseRazorRe
     }
 
 
-    public void Setup(MarkdownPipeline pipeline, IMarkdownRenderer renderer)
+    public void Setup(MarkdownPipeline pipeline, IMarkdownParser renderer)
     {
         ArgumentNullException.ThrowIfNull(renderer);
 
