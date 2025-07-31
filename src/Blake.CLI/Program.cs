@@ -169,7 +169,13 @@ class Program
             UseShellExecute = true
         };
 
-        await Process.Start(psi)?.WaitForExitAsync()!;
+        var process = Process.Start(psi);
+        if (process == null)
+        {
+            Console.WriteLine("❌ Failed to start the process. Please check the configuration and try again.");
+            return 1;
+        }
+        await process.WaitForExitAsync();
         return 0;
     }
 
