@@ -24,5 +24,5 @@ public interface IBlakePlugin
     /// <param name="context">The context containing information about the completed baking process.</param>
     /// <param name="logger">An ILogger instance - default Console logger is passed in by the Blake CLI</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task AfterBakeAsync(BlakeContext context, ILogger? logger) => Task.CompletedTask;
+    Task AfterBakeAsync(BlakeContext context, ILogger? logger = null) => Task.CompletedTask;
 }
