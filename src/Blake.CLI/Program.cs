@@ -231,7 +231,7 @@ class Program
 
                 if (string.IsNullOrWhiteSpace(newSiteName) || newSiteName.Contains(Path.DirectorySeparatorChar) || newSiteName.Contains(Path.AltDirectorySeparatorChar))
                 {
-                    logger.LogError("❌ Error: Site name '{newSiteName}' is invalid. It should not contain directory separators.", newSiteName);
+                    logger.LogError("Site name '{newSiteName}' is invalid. It should not contain directory separators.", newSiteName);
                     return 1;
                 }
 
@@ -253,7 +253,7 @@ class Program
 
             if (string.IsNullOrWhiteSpace(url))
             {
-                logger.LogError("❌ Error: Url '{url}' is missing or invalid.", url);
+                logger.LogError("Url '{url}' is missing or invalid.", url);
                 return 1;
             }
 
