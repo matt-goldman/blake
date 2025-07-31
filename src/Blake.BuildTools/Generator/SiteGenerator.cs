@@ -294,7 +294,7 @@ internal static class SiteGenerator
 
             if (page.Draft && !options.IncludeDrafts)
             {
-                logger?.LogInformation("️  Skipping draft page: {FileName} in {Folder}", fileName, folder);
+                logger?.LogInformation("⚠️  Skipping draft page: {FileName} in {Folder}", fileName, folder);
                 continue;
             }
 
