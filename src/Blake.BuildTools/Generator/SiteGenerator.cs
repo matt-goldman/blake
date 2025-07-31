@@ -375,7 +375,7 @@ internal static class SiteGenerator
 
             foreach (var mdPath in markdownFiles)
             {
-                templateMappings.Add(Path.GetFileNameWithoutExtension(mdPath), templatePath);
+                templateMappings.Add(mdPath, templatePath);
             }
             
             var children = Directory.GetDirectories(rootPath)
