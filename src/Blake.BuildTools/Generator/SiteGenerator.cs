@@ -202,7 +202,7 @@ internal static class SiteGenerator
             await File.WriteAllTextAsync(file, fileContents);
         }
 
-        Console.WriteLine($"✅ Template {name} created as '{newSiteName}'.");
+        logger?.LogInformation("✅ Template {name} created as '{newSiteName}'.", name, newSiteName);
         return 0;
     }
 

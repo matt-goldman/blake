@@ -303,10 +303,10 @@ class Program
         if (result != 0)
         {
             logger.LogError(" Failed to create site from template.");
-            return -1;
+            return result;
         }
 
-        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName, directory);
+        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName, directory, logger);
 
         if (newResult != 0)
         {
