@@ -278,12 +278,12 @@ internal static class SiteGenerator
     {
         // Bake: Process each markdown file and generate Razor pages
         var mdPipeline = context.PipelineBuilder.Build();
-        await using var sw = new StringWriter();
-        var renderer = new HtmlRenderer(sw);
-        mdPipeline.Setup(renderer);
 
         foreach (var mdPage in context.MarkdownPages)
         { 
+            await using var sw = new StringWriter();
+            var renderer = new HtmlRenderer(sw);
+            mdPipeline.Setup(renderer);
             var mdContent = mdPage.RawMarkdown;
 
             var frontmatter = FrontmatterHelper.ParseFrontmatter(mdContent, cleanedContent: out _);
