@@ -378,7 +378,7 @@ internal static class SiteGenerator
                 templateMappings.Add(mdPath, templatePath);
             }
             
-            var children = Directory.GetDirectories(rootPath)
+            var children = Directory.GetDirectories(fullFolderPath)
                 .Select(Path.GetFileName)
                 .Where(child =>
                     child != null &&
