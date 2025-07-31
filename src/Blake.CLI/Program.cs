@@ -302,7 +302,7 @@ class Program
 
         if (result != 0)
         {
-            logger.LogError(" Failed to create site from template.");
+            logger.LogError("Failed to create site from template.");
             return result;
         }
 
