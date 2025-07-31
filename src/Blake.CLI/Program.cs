@@ -352,7 +352,7 @@ class Program
                     
                     if (!Enum.TryParse<LogLevel>(levelString, out var parsedLevel))
                     {
-                        Console.Error.WriteLineAsync($"Invalid verbosity level: {levelString}. Using default level: Warning.").Wait();
+                        Console.WriteLine($"⚠️ Invalid verbosity level: {levelString}. Using default level: Warning.");
                         parsedLevel = LogLevel.Warning;
                     }
                     
@@ -360,7 +360,7 @@ class Program
                 }
                 else
                 {
-                    Console.Error.WriteLineAsync("Missing verbosity level after --verbosity or -v. Using default level: Warning.").Wait();
+                    Console.WriteLine("⚠️ Missing verbosity level after --verbosity or -v. Using default level: Warning.");
                     level = LogLevel.Warning;
                 }
             }
