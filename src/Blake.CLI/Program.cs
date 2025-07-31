@@ -348,7 +348,13 @@ class Program
             {
                 var levelString = argList[verbosityIndex + 1];
                 
-                level = Enum.Parse<LogLevel>(levelString);
+                if (!Enum.TryParse<LogLevel>(levelString, out var parsedLevel))
+                {
+                    await Console.Error.WriteLineAsync($"Invalid verbosity level: {levelString}. Using default level: Warning.");
+                    parsedLevel = LogLevel.Warning;
+                }
+                
+                level = parsedLevel;
             }
         }
         
