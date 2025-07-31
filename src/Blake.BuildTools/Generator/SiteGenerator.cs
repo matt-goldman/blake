@@ -106,7 +106,7 @@ internal static class SiteGenerator
 
         if (csprojResult != 0)
         {
-            logger?.LogError("❌ Failed to initialize Blake in the project. Please check the project file.");
+            logger?.LogError(" Failed to initialize Blake in the project. Please check the project file.");
             return csprojResult;
         }
 
@@ -171,7 +171,7 @@ internal static class SiteGenerator
         
         if (templateCsprojPath == null)
         {
-            logger?.LogError("❌ Template Error: No .csproj file found in the cloned template directory.");
+            logger?.LogError(" Template Error: No .csproj file found in the cloned template directory.");
             return -1;
         }
         

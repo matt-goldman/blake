@@ -292,7 +292,7 @@ class Program
                     }
                     else
                     {
-                        logger.LogError("❌ Failed to create new Blake site");
+                        logger.LogError("Failed to create new Blake site");
                     }
                     
                     return initResult;
@@ -302,7 +302,7 @@ class Program
 
         if (result != 0)
         {
-            logger.LogError("❌ Failed to create site from template.");
+            logger.LogError(" Failed to create site from template.");
             return -1;
         }
 
@@ -310,7 +310,7 @@ class Program
 
         if (newResult != 0)
         {
-            logger.LogError("❌ Failed to create new Blake site");
+            logger.LogError(" Failed to create new Blake site");
         }
         else
         {
