@@ -10,7 +10,7 @@ public class ImageCaptionExtension : IMarkdownExtension
         // no-op
     }
 
-    public void Setup(MarkdownPipeline pipeline, IMarkdownParser renderer)
+    public void Setup(MarkdownPipeline pipeline, IMarkdownRenderer renderer)
     {
         if (renderer is HtmlRenderer htmlRenderer)
         {
