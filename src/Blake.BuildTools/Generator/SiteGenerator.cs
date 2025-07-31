@@ -171,7 +171,7 @@ internal static class SiteGenerator
         
         if (templateCsprojPath == null)
         {
-            logger?.LogError(" Template Error: No .csproj file found in the cloned template directory.");
+            logger?.LogError("Template Error: No .csproj file found in the cloned template directory.");
             return -1;
         }
         
