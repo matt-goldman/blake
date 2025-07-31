@@ -350,7 +350,7 @@ class Program
                 
                 if (!Enum.TryParse<LogLevel>(levelString, out var parsedLevel))
                 {
-                    await Console.Error.WriteLineAsync($"Invalid verbosity level: {levelString}. Using default level: Warning.");
+                    Console.Error.WriteLineAsync($"Invalid verbosity level: {levelString}. Using default level: Warning.").Wait();
                     parsedLevel = LogLevel.Warning;
                 }
                 
