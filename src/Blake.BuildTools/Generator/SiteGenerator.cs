@@ -352,7 +352,7 @@ internal static class SiteGenerator
             
             if (File.Exists(localCascadingTemplatePath) && File.Exists(localTemplatePath))
             {
-                logger?.LogDebug("⚠️  Folder {FullFolderPath} contains both local and cascading templates. Skipping.", fullFolderPath);
+                logger?.LogWarning("⚠️  Folder {FullFolderPath} contains both local and cascading templates. Skipping.", fullFolderPath);
                 continue;
             }
             
