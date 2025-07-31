@@ -295,7 +295,7 @@ class Program
                         logger.LogError("❌ Failed to create new Blake site");
                     }
                     
-                    return initResult;;
+                    return initResult;
                 }
             }
         }
