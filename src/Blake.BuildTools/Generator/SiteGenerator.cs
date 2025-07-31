@@ -256,9 +256,9 @@ internal static class SiteGenerator
         foreach (var mapping in templateMappings)
         {
             var fileName = Path.GetFileNameWithoutExtension(mapping.Key);
-            var folder = Path.GetFullPath(mapping.Key).Replace(Path.GetFileName(mapping.Key), "");
+            var folder = Path.Combine(options.ProjectPath, Path.GetDirectoryName(mapping.Key) ?? string.Empty);
             
-            var slug = $"/{folder.ToLowerInvariant()}/{fileName.ToLowerInvariant()}";
+            var slug = $"/{Path.GetFileName(folder).ToLowerInvariant()}/{fileName.ToLowerInvariant()}";
 
             var mdContent = await File.ReadAllTextAsync(mapping.Key);
 
