@@ -106,7 +106,7 @@ internal static class SiteGenerator
 
         if (csprojResult != 0)
         {
-            logger?.LogError(" Failed to initialize Blake in the project. Please check the project file.");
+            logger?.LogError("Failed to initialize Blake in the project. Please check the project file.");
             return csprojResult;
         }
 
