@@ -113,7 +113,7 @@ class Program
         // Check if the project is a Blazor WASM app
         if (!File.Exists(projectFile))
         {
-            logger.LogError("Error: Project file '{projectFile}' does not exist.", projectFile);
+            logger.LogError("Project file '{projectFile}' does not exist.", projectFile);
             return 1;
         }
 
