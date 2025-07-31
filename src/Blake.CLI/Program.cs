@@ -104,7 +104,7 @@ class Program
         
         if (!Directory.Exists(targetPath))
         {
-            logger.LogError("Error: Path '{targetPath}' does not exist.", targetPath);
+            logger.LogError("Path '{targetPath}' does not exist.", targetPath);
             return 1;
         }
         
