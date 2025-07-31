@@ -84,7 +84,7 @@ class Program
         {
             if (!File.Exists(targetPath))
             {
-                logger?.LogError("Error: Project file '{targetPath}' does not exist.", targetPath);
+                logger?.LogError("Project file '{targetPath}' does not exist.", targetPath);
                 return 1;
             }
             projectFile = targetPath;
