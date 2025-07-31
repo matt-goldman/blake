@@ -84,7 +84,7 @@ class Program
         {
             if (!File.Exists(targetPath))
             {
-                logger?.LogError("Error: Project file '{targetPath}' does not exist.", targetPath);
+                logger?.LogError("Project file '{targetPath}' does not exist.", targetPath);
                 return 1;
             }
             projectFile = targetPath;
@@ -96,7 +96,7 @@ class Program
             var csprojFiles = Directory.GetFiles(targetPath, "*.csproj");
             if (csprojFiles.Length == 0)
             {
-                logger.LogError("Error: No .csproj file found in the specified path.");
+                logger.LogError("No .csproj file found in the specified path.");
                 return 1;
             }
             projectFile = csprojFiles[0];
@@ -104,7 +104,7 @@ class Program
         
         if (!Directory.Exists(targetPath))
         {
-            logger.LogError("Error: Path '{targetPath}' does not exist.", targetPath);
+            logger.LogError("Path '{targetPath}' does not exist.", targetPath);
             return 1;
         }
         
@@ -113,7 +113,7 @@ class Program
         // Check if the project is a Blazor WASM app
         if (!File.Exists(projectFile))
         {
-            logger.LogError("Error: Project file '{projectFile}' does not exist.", projectFile);
+            logger.LogError("Project file '{projectFile}' does not exist.", projectFile);
             return 1;
         }
 
@@ -131,7 +131,7 @@ class Program
 
         if (!Directory.Exists(targetPath))
         {
-            logger.LogError("Error: Path '{targetPath}' does not exist.", targetPath);
+            logger.LogError("Path '{targetPath}' does not exist.", targetPath);
             return 1;
         }
 
