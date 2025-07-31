@@ -264,7 +264,7 @@ internal static class SiteGenerator
 
             if (string.IsNullOrWhiteSpace(mdContent))
             {
-                logger?.LogInformation("️  Skipping empty markdown file: {FileName} in {Folder}", fileName, folder);
+                logger?.LogInformation("⚠️  Skipping empty markdown file: {FileName} in {Folder}", fileName, folder);
                 continue;
             }
 
