@@ -70,23 +70,20 @@ jobs:
       new_version: ${{ steps.tag_bump.outputs.new_tag }}
 
   publish:
-    needs: generate-version
-    runs-on: ubuntu-latest
-    strategy:
-          matrix:
-            project:
-              - name: Blake.Types
-                path: src/Blake.Types/Blake.Types.csproj
-              - name: Blake.MarkdownParser
-                path: src/Blake.MarkdownParser/Blake.MarkdownParser.csproj
-              - name: Blake.BuildTools
-                path: src/Blake.BuildTools/Blake.BuildTools.csproj
-              - name: Blake.CLI
-                path: src/Blake.CLI/Blake.CLI.csproj
-    steps:
-      - name: Publish
-        uses: ./.github/workflows/reusable-publish.yml@main
-        with:
-          project_path: ${{ matrix.project.path }}
-          version: ${{ needs.generate-version.outputs.new_version }}
-          nuget_key:  ${{ secrets.NUGET_API_KEY }}
+     uses: ./.github/workflows/reusable-publish.yml
+     with:
+      project_path: ${{ matrix.project.path }}
+      version: ${{ needs.generate-version.outputs.new_version }}
+     secrets: inherit
+     needs: generate-version
+     strategy:
+      matrix:
+        project:
+          - name: Blake.Types
+            path: src/Blake.Types/Blake.Types.csproj
+          - name: Blake.MarkdownParser
+            path: src/Blake.MarkdownParser/Blake.MarkdownParser.csproj
+          - name: Blake.BuildTools
+            path: src/Blake.BuildTools/Blake.BuildTools.csproj
+          - name: Blake.CLI
+            path: src/Blake.CLI/Blake.CLI.csproj
