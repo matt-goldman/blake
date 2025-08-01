@@ -83,10 +83,10 @@ Other static site generators often feel like Rube Goldberg machines:
 * If a folder contains a `template.razor`, file and that template includes recognized placeholders, any Markdown files in that folder will be rendered with it and added to the global site index.
 * Routes are auto-generated based on folder structure.
 
-✅ No arcane templating languages.
-✅ No endless config.
-✅ No hidden assumptions.
-✅ Just Blazor. Just .NET. Just bake.
+✅ No arcane templating languages.    
+✅ No endless config.    
+✅ No hidden assumptions.    
+✅ Just Blazor. Just .NET. Just bake.    
 
 Blake embodies the true meaning of Occam's Razor — it minimizes assumptions and keeps things honest, intuitive, and familiar for developers who already know .NET and HTML.
 
