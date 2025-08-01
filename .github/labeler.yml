@@ -1,0 +1,25 @@
+Blake.Types:
+  - changed-files:
+      - any-glob-to-any-file: 'src/Blake.Types/**'
+
+Blake.MarkdownParser:
+  - changed-files:
+      - any-glob-to-any-file: 'src/Blake.MarkdownParser/**'
+
+Blake.BuildTools:
+  - changed-files:
+      - any-glob-to-any-file: 'src/Blake.BuildTools/**'
+
+Blake.CLI:
+  - changed-files:
+      - any-glob-to-any-file: 'src/Blake.CLI/**'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file: '**/*.csproj'
+      - any-glob-to-any-file: '**/Directory.Packages.props'
+      - any-glob-to-any-file: '**/packages.lock.json'
+
+enhancement:
+  - changed-files:
+      - any-glob-to-any-file: 'src/**'

@@ -1,0 +1,39 @@
+name: Build and publish package
+
+on:
+  workflow_call:
+    inputs:
+      project_path:
+          description: 'Path to the .csproj file'
+          type: string
+          required: true
+      version:
+          description: 'Version to use for packaging'
+          type: string
+          required: true
+      nuget_key:
+          description: 'NuGet API key'
+          type: string
+          required: true
+
+jobs:
+    package-and-publish-lib:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                dotnet-version: 9.0.x
+
+            - name: Generate NuGet package
+              run: |
+                dotnet pack ${{ inputs.project_path }} \
+                --configuration Release \
+                -p:PackageVersion=${{ inputs.version }} \
+                -o packages
+
+            - name: Publish NuGet package
+              run: dotnet nuget push packages/*.nupkg --api-key ${{ inputs.nuget_key }} --source https://api.nuget.org/v3/index.json

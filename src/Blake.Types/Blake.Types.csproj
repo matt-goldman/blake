@@ -17,7 +17,12 @@
 	  <PackageTags>blazor; ssg; razor;</PackageTags>
 	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
-  </PropertyGroup>
+	  <PackageIcon>icon.png</PackageIcon>
+  	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\assets\icon.png" Pack="true" PackagePath="" />
+	</ItemGroup>
 
   <ItemGroup>
 	  <None Include="..\..\LICENSE">
@@ -29,5 +34,8 @@
 		  <PackagePath>\</PackagePath>
 	  </None>
   </ItemGroup>
+
+  
+  
 
 </Project>
