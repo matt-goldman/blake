@@ -392,7 +392,7 @@ internal static class SiteGenerator
             
             if (children.Count == 0) continue;
             
-            var childMappings = MapTemplates(children, fullFolderPath, cascadingPath);
+            var childMappings = MapTemplates(children, fullFolderPath, cascadingPath, logger);
 
             foreach (var child in childMappings)
             {
