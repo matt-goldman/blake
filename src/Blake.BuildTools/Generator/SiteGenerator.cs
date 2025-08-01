@@ -208,7 +208,7 @@ internal static class SiteGenerator
 
     private static string GetConfiguration(string[] args)
     {
-        for (var i = 0; i < args.Length - 1; i++)
+        for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
 
