@@ -282,7 +282,7 @@ class Program
                 
                 await process.WaitForExitAsync();
 
-                if (process.ExitCode != 0)
+                if (process.ExitCode == 0)
                 {
                     var initResult = await SiteGenerator.InitAsync($"{newSiteName}.csproj", true, logger);
 
