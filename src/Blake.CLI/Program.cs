@@ -96,7 +96,7 @@ class Program
             var csprojFiles = Directory.GetFiles(targetPath, "*.csproj");
             if (csprojFiles.Length == 0)
             {
-                logger.LogError("No .csproj file found in the specified path.");
+                logger?.LogError("No .csproj file found in the specified path.");
                 return 1;
             }
             projectFile = csprojFiles[0];
