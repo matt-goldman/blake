@@ -390,13 +390,65 @@ internal static class SiteGenerator
                 .Select(child => child!)
                 .ToList();
             
-            if (children.Count == 0) continue;
-            
-            var childMappings = MapTemplates(children, fullFolderPath, cascadingPath, logger);
+            var stack = new Stack<(List<string> Folders, string RootPath, string CascadingPath)>();
+            stack.Push((children, fullFolderPath, cascadingPath));
 
-            foreach (var child in childMappings)
+            while (stack.Count > 0)
             {
-                templateMappings.Add(child.Key, child.Value);
+                var (currentFolders, currentRootPath, currentCascadingPath) = stack.Pop();
+
+                foreach (var folder in currentFolders)
+                {
+                    var currentFullFolderPath = Path.Combine(currentRootPath, folder);
+                    if (!Directory.Exists(currentFullFolderPath))
+                    {
+                        logger?.LogDebug("⚠️  Skipping missing folder: {Folder}", folder);
+                        continue;
+                    }
+
+                    var localCascadingTemplatePath = Path.Combine(currentFullFolderPath, "cascading-template.razor");
+                    var localTemplatePath = Path.Combine(currentFullFolderPath, "template.razor");
+
+                    if (File.Exists(localCascadingTemplatePath) && File.Exists(localTemplatePath))
+                    {
+                        logger?.LogWarning("⚠️  Folder {FullFolderPath} contains both local and cascading templates. Skipping.", currentFullFolderPath);
+                        continue;
+                    }
+
+                    var templatePath = File.Exists(localTemplatePath) ? localTemplatePath : (File.Exists(localCascadingTemplatePath) ? localCascadingTemplatePath : currentCascadingPath);
+                    if (string.IsNullOrEmpty(templatePath))
+                    {
+                        logger?.LogDebug("⚠️  No template.razor found in {Folder}, skipping.", folder);
+                        continue;
+                    }
+
+                    var markdownFiles = Directory.GetFiles(currentFullFolderPath, "*.md");
+                    if (markdownFiles.Length == 0)
+                    {
+                        logger?.LogDebug("⚠️  No markdown files found in {Folder}, skipping.", folder);
+                        continue;
+                    }
+
+                    foreach (var mdPath in markdownFiles)
+                    {
+                        templateMappings.Add(mdPath, templatePath);
+                    }
+
+                    var subdirectories = Directory.GetDirectories(currentFullFolderPath)
+                        .Select(Path.GetFileName)
+                        .Where(child =>
+                            child != null &&
+                            !child.StartsWith('.') &&
+                            !child.Equals("obj", StringComparison.OrdinalIgnoreCase) &&
+                            !child.Equals("bin", StringComparison.OrdinalIgnoreCase))
+                        .Select(child => child!)
+                        .ToList();
+
+                    if (subdirectories.Count > 0)
+                    {
+                        stack.Push((subdirectories, currentFullFolderPath, templatePath));
+                    }
+                }
             }
         }
         
