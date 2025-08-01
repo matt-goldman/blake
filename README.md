@@ -18,6 +18,12 @@
 dotnet tool install -g blake
 ```
 
+### Generate static content:
+
+```bash
+blake bake
+```
+
 ### Run a Blake site:
 
 ```bash
@@ -40,9 +46,6 @@ blake bake
 
 _Why?_ A Blake template is just a Blazor WASM app with an MSBuild task that uses Blake to generate Razor files from templates. If for whatever reason you don't want to do that, Blake can generate files in any Blazor WASM app. If you have `template.razor` files that follow Blake templating conventions, and Markdown files in the same folders, Blake will generate Razor files by combining the content and template. If you want to keep your templated content generation separate from your build and run, you can do it this way.
 
----
-_**Coming soon:**_
-
 ### Create a new Blake site:
 
 ```bash
@@ -61,7 +64,6 @@ or:
 blake new -t blog
 ```
 
----
 
 ## Why Blake?
 
@@ -81,10 +83,10 @@ Other static site generators often feel like Rube Goldberg machines:
 * If a folder contains a `template.razor`, file and that template includes recognized placeholders, any Markdown files in that folder will be rendered with it and added to the global site index.
 * Routes are auto-generated based on folder structure.
 
-✅ No arcane templating languages.    
-✅ No endless config.    
-✅ No hidden assumptions.    
-✅ Just Blazor. Just .NET. Just bake.    
+✅ No arcane templating languages.
+✅ No endless config.
+✅ No hidden assumptions.
+✅ Just Blazor. Just .NET. Just bake.
 
 Blake embodies the true meaning of Occam's Razor — it minimizes assumptions and keeps things honest, intuitive, and familiar for developers who already know .NET and HTML.
 
@@ -113,7 +115,7 @@ We believe:
 
 * Content and structure should be self-evident from folder layout.
 * If it's not in the content or the template, it doesn't exist.
-* Complexity belongs in templates, not the generator.
+* Complexity belongs in templates or plugins, not the generator.
 * Developers deserve to understand and own their build process.
 
 → [Read the full Blake Philosophy](/docs/philosophy.md)

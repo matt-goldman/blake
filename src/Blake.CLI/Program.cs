@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using Blake.BuildTools.Services;
 using Blake.Types;
+using Microsoft.Extensions.Logging;
 
 namespace Blake.CLI;
 
@@ -68,21 +69,22 @@ class Program
         Console.WriteLine();
         Console.WriteLine("  --help               Show this help message.");
     }
-
-
+    
     private static async Task<int> InitBlakeAsync(string[] args)
     {
         // get target path or use current directory
         var targetPath = GetPathFromArgs(args);
 
         var projectFile = string.Empty;
+
+        var logger = GetLogger(args);
         
         // Check if the path is a .csproj file
         if (Path.GetExtension(targetPath).Equals(".csproj", StringComparison.OrdinalIgnoreCase))
         {
             if (!File.Exists(targetPath))
             {
-                Console.WriteLine($"Error: Project file '{targetPath}' does not exist.");
+                logger?.LogError("Project file '{targetPath}' does not exist.", targetPath);
                 return 1;
             }
             projectFile = targetPath;
@@ -94,7 +96,7 @@ class Program
             var csprojFiles = Directory.GetFiles(targetPath, "*.csproj");
             if (csprojFiles.Length == 0)
             {
-                Console.WriteLine("Error: No .csproj file found in the specified path.");
+                logger?.LogError("No .csproj file found in the specified path.");
                 return 1;
             }
             projectFile = csprojFiles[0];
@@ -102,22 +104,22 @@ class Program
         
         if (!Directory.Exists(targetPath))
         {
-            Console.WriteLine($"Error: Path '{targetPath}' does not exist.");
+            logger?.LogError("Path '{targetPath}' does not exist.", targetPath);
             return 1;
         }
         
-        Console.WriteLine($"🛠  Initializing Blake in: {targetPath}");
+        logger.LogInformation("🛠  Initializing Blake in: {targetPath}", targetPath);
         
         // Check if the project is a Blazor WASM app
         if (!File.Exists(projectFile))
         {
-            Console.WriteLine($"Error: Project file '{projectFile}' does not exist.");
+            logger.LogError("Project file '{projectFile}' does not exist.", projectFile);
             return 1;
         }
 
         var includeSampleContent = args.Contains("--includeSampleContent") || args.Contains("-s");
 
-        return await SiteGenerator.InitAsync(projectFile, includeSampleContent);
+        return await SiteGenerator.InitAsync(projectFile, includeSampleContent, logger);
     }
 
     private static async Task<int> BakeBlakeAsync(string[] args)
@@ -125,13 +127,15 @@ class Program
         // get target path or use current directory
         var targetPath = GetPathFromArgs(args);
 
+        var logger = GetLogger(args);
+
         if (!Directory.Exists(targetPath))
         {
-            Console.WriteLine($"Error: Path '{targetPath}' does not exist.");
+            logger.LogError("Path '{targetPath}' does not exist.", targetPath);
             return 1;
         }
 
-        Console.WriteLine($"🛠  Starting build for: {targetPath}");
+        logger.LogInformation("🛠  Starting build for: {targetPath}", targetPath);
 
         var options = new GenerationOptions
         {
@@ -142,7 +146,7 @@ class Program
             Arguments           = [.. args.Skip(1)]
         };
 
-        await SiteGenerator.BuildAsync(options);
+        await SiteGenerator.BuildAsync(options, logger);
 
         Console.WriteLine("✅ Build completed successfully.");
         
@@ -165,7 +169,13 @@ class Program
             UseShellExecute = true
         };
 
-        Process.Start(psi)?.WaitForExit();
+        var process = Process.Start(psi);
+        if (process == null)
+        {
+            Console.WriteLine("❌ Failed to start the process. Please check the configuration and try again.");
+            return 1;
+        }
+        await process.WaitForExitAsync();
         return 0;
     }
 
@@ -206,9 +216,10 @@ class Program
         var directory = GetPathFromArgs(args);
 
         var result = 0;
+        
+        var logger = GetLogger(args);
 
-        Console.WriteLine($"🛠  Creating new site in: {directory}");
-        Console.WriteLine();
+        logger.LogInformation("🛠  Creating new site in: {directory}", directory);
 
         if (argList.Contains("--siteName") || argList.Contains("-sn"))
         {
@@ -220,21 +231,20 @@ class Program
 
                 if (string.IsNullOrWhiteSpace(newSiteName) || newSiteName.Contains(Path.DirectorySeparatorChar) || newSiteName.Contains(Path.AltDirectorySeparatorChar))
                 {
-                    Console.WriteLine($"❌ Error: Site name '{newSiteName}' is invalid. It should not contain directory separators.");
+                    logger.LogError("Site name '{newSiteName}' is invalid. It should not contain directory separators.", newSiteName);
                     return 1;
                 }
 
-                Console.WriteLine($"Using provided site name: {newSiteName}");
+                logger.LogInformation("Using provided site name: {newSiteName}", newSiteName);
             }
         }
         else
         {
             var directoryParts = directory.Split(Path.DirectorySeparatorChar);
             newSiteName = directoryParts[^1];
-            Console.WriteLine($"No site name provided, using directory name: {newSiteName}");
+            logger.LogInformation("No site name provided, using directory name: {newSiteName}", newSiteName);
         }
-
-        Console.WriteLine();
+        
 
         if (argList.Contains("--url") || argList.Contains("-u"))
         {
@@ -243,7 +253,7 @@ class Program
 
             if (string.IsNullOrWhiteSpace(url))
             {
-                Console.WriteLine($"❌ Error: Url '{url}' is missing or invalid.");
+                logger.LogError("Url '{url}' is missing or invalid.", url);
                 return 1;
             }
 
@@ -262,40 +272,58 @@ class Program
             else
             {
                 // don't use a template, just create a new Blazor site and initialise
-                Console.WriteLine();
-                Console.WriteLine("No template specified, creating a new Blazor WASM site using the default template.");
+                logger.LogInformation("No template specified, creating a new Blazor WASM site using the default template.");
                 var process = new Process
                 {
-                    StartInfo = new ProcessStartInfo("dotnet", "new blazorwasm")
+                    StartInfo = new ProcessStartInfo("dotnet", $"new blazorwasm -o \"{directory}\"")
+                    {
+                        RedirectStandardOutput  = true,
+                        RedirectStandardError   = true,
+                        UseShellExecute         = false,
+                        CreateNoWindow          = true
+                    }
                 };
                 
                 var processResult = process.Start();
                 
                 await process.WaitForExitAsync();
 
-                if (process.ExitCode != 0)
+                if (process.ExitCode == 0)
                 {
-                    var initResult = await SiteGenerator.InitAsync($"{newSiteName}.csproj", true);
+                    var fileName = Path.Combine(directory, $"{newSiteName}.csproj");
+                    var initResult = await SiteGenerator.InitAsync(fileName, true, logger);
 
-                    var resultMessage = initResult == 0 ? $"✅ New site {newSiteName} created successfully." : "❌ Failed to create new Blake site";
+                    if (initResult == 0)
+                    {
+                        logger.LogInformation("✅ New site {newSiteName} created successfully.", newSiteName);
+                    }
+                    else
+                    {
+                        logger.LogError("Failed to create new Blake site");
+                    }
                     
-                    Console.WriteLine(resultMessage);
-                    return initResult;;
+                    return initResult;
                 }
             }
         }
 
         if (result != 0)
         {
-            Console.WriteLine("❌ Failed to create site from template.");
-            return -1;
+            logger.LogError("Failed to create site from template.");
+            return result;
         }
 
-        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName, directory);
+        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName, directory, logger);
+
+        if (newResult != 0)
+        {
+            logger.LogError("Failed to create new Blake site");
+        }
+        else
+        {
+            logger.LogInformation("✅ New site {newSiteName} created successfully.", newSiteName);
+        }
         
-        var finalMessage = newResult == 0 ? $"✅ New site {newSiteName} created successfully." : "❌ Failed to create new Blake site";
-        
-        Console.WriteLine(finalMessage);
         return newResult;
     }
 
@@ -312,5 +340,46 @@ class Program
         }
 
         return Directory.GetCurrentDirectory();
+    }
+
+    private static ILogger GetLogger(string[] args)
+    {
+        var level = LogLevel.Warning;
+        
+        if (args.Contains("--verbosity") || args.Contains("-v"))
+        {
+            var argList = args.ToList();
+            var verbosityIndex = argList.FindIndex(arg => arg is "--verbosity" or "-v");
+            
+            if (verbosityIndex >= 0)
+            {
+                if (verbosityIndex + 1 < argList.Count)
+                {
+                    var levelString = argList[verbosityIndex + 1];
+                    
+                    if (!Enum.TryParse<LogLevel>(levelString, out var parsedLevel))
+                    {
+                        Console.WriteLine($"⚠️ Invalid verbosity level: {levelString}. Using default level: Warning.");
+                        parsedLevel = LogLevel.Warning;
+                    }
+                    
+                    level = parsedLevel;
+                }
+                else
+                {
+                    Console.WriteLine("⚠️ Missing verbosity level after --verbosity or -v. Using default level: Warning.");
+                    level = LogLevel.Warning;
+                }
+            }
+        }
+        
+        // Add a default logger
+        var logger = LoggerFactory.Create(c =>
+        {
+            c.AddConsole();
+            c.SetMinimumLevel(level);
+        });
+        
+        return logger.CreateLogger("Blake");
     }
 }
