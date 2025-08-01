@@ -20,7 +20,7 @@ internal static class SiteGenerator
         logger?.LogInformation("📂 Output path: {OptionsOutputPath}", options.OutputPath);
         logger?.LogInformation("🔎 Scanning content folders...");
 
-        
+
         // iterate through all folders in the project path, find template.razor files
         if (!Directory.Exists(options.ProjectPath))
         {
@@ -157,10 +157,10 @@ internal static class SiteGenerator
         Console.WriteLine("Run 'dotnet run' to run your new Blake site.");
         Console.WriteLine("Or just run 'blake serve' to do both.");
         Console.WriteLine("Refer to the documentation for further setup instructions.");
-        
+
         return 0;
     }
-    
+
     public static async Task<int> NewSiteAsync(string newSiteName, string name, string? path = null, ILogger? logger = null)
     {
         // Initialize the new site
@@ -168,13 +168,13 @@ internal static class SiteGenerator
         var newSiteDirectory = path ?? Directory.GetCurrentDirectory();
         var templateCsprojPath = Directory.GetFiles(newSiteDirectory, "*.csproj", SearchOption.AllDirectories)
             .FirstOrDefault();
-        
+
         if (templateCsprojPath == null)
         {
             logger?.LogError("Template Error: No .csproj file found in the cloned template directory.");
             return -1;
         }
-        
+
         // rename the csproj file to the new site name
         var newCsprojPath = Path.Combine(Path.GetDirectoryName(templateCsprojPath) ?? string.Empty, $"{newSiteName}.csproj");
         if (File.Exists(newCsprojPath))
@@ -182,13 +182,13 @@ internal static class SiteGenerator
             logger?.LogWarning("⚠️  A project file with the name '{NewSiteName}.csproj' already exists. It will be overwritten.", newSiteName);
             File.Delete(newCsprojPath);
         }
-        
+
         File.Move(templateCsprojPath, newCsprojPath);
-        
+
         // Remove spaces from template name
         var templatePlaceholderName = name.Replace(" ", string.Empty);
         var templatePlaceholder = "{{" + templatePlaceholderName + "}}";
-        
+
         // replace "{{templatePlaceholder}}" in all files with newSiteName
         var fileList = Directory.GetFiles(newSiteDirectory, "*", SearchOption.AllDirectories);
         foreach (var file in fileList)
@@ -196,9 +196,9 @@ internal static class SiteGenerator
             var fileContents = await File.ReadAllTextAsync(file);
 
             if (!fileContents.Contains(templatePlaceholder)) continue;
-            
+
             fileContents = fileContents.Replace(templatePlaceholder, templatePlaceholderName);
-            
+
             await File.WriteAllTextAsync(file, fileContents);
         }
 
@@ -251,13 +251,13 @@ internal static class SiteGenerator
             .ToList();
 
         var templateMappings = MapTemplates(folders, options.ProjectPath, null, logger);
-        
+
         // Pre-bake: Load existing markdown files into the context
         foreach (var mapping in templateMappings)
         {
             var fileName = Path.GetFileNameWithoutExtension(mapping.Key);
             var folder = Path.Combine(options.ProjectPath, Path.GetDirectoryName(mapping.Key) ?? string.Empty);
-            
+
             var slug = $"/{Path.GetFileName(folder).ToLowerInvariant()}/{fileName.ToLowerInvariant()}";
 
             var mdContent = await File.ReadAllTextAsync(mapping.Key);
@@ -270,11 +270,11 @@ internal static class SiteGenerator
 
             context.MarkdownPages.Add(new MarkdownPage(mapping.Key, mapping.Value, slug, mdContent));
         }
-        
+
         return context;
     }
 
-    private static async Task BakeContent(BlakeContext context, GenerationOptions options,  ILogger? logger = null)
+    private static async Task BakeContent(BlakeContext context, GenerationOptions options, ILogger? logger = null)
     {
         // Bake: Process each markdown file and generate Razor pages
         var mdPipeline = context.PipelineBuilder.Build();
@@ -284,7 +284,7 @@ internal static class SiteGenerator
         mdPipeline.Setup(renderer);
 
         foreach (var mdPage in context.MarkdownPages)
-        { 
+        {
             sw.GetStringBuilder().Clear();
             var mdContent = mdPage.RawMarkdown;
 
@@ -324,7 +324,7 @@ internal static class SiteGenerator
             var outputFileName = string.Join("", fileNameParts.Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
 
             var outputPath = Path.Combine(outputDir, $"{outputFileName}.razor");
-            
+
             logger?.LogInformation("✅ Generated page: {OutputPath}", outputPath);
 
             context.GeneratedPages.Add(new GeneratedPage(page, outputPath, generatedRazor));
@@ -338,28 +338,28 @@ internal static class SiteGenerator
         ILogger? logger = null)
     {
         Dictionary<string, string> templateMappings = [];
-        
+
         foreach (var folder in folders)
         {
             var fullFolderPath = Path.Combine(rootPath, folder);
             if (!Directory.Exists(fullFolderPath))
             {
-                
+
                 logger?.LogDebug("⚠️  Skipping missing folder: {Folder}", folder);
                 continue;
             }
 
             var localCascadingTemplatePath = Path.Combine(fullFolderPath, "cascading-template.razor");
             var localTemplatePath = Path.Combine(fullFolderPath, "template.razor");
-            
+
             if (File.Exists(localCascadingTemplatePath) && File.Exists(localTemplatePath))
             {
                 logger?.LogWarning("⚠️  Folder {FullFolderPath} contains both local and cascading templates. Skipping.", fullFolderPath);
                 continue;
             }
-            
+
             var cascadingPath = File.Exists(localCascadingTemplatePath) ? localCascadingTemplatePath : cascadingTemplatePath;
-            
+
             var templatePath = File.Exists(localTemplatePath) ? localTemplatePath : cascadingPath;
             if (string.IsNullOrEmpty(templatePath))
             {
@@ -379,7 +379,7 @@ internal static class SiteGenerator
             {
                 templateMappings.Add(mdPath, templatePath);
             }
-            
+
             var children = Directory.GetDirectories(fullFolderPath)
                 .Select(Path.GetFileName)
                 .Where(child =>
@@ -389,69 +389,17 @@ internal static class SiteGenerator
                     !child.Equals("bin", StringComparison.OrdinalIgnoreCase))
                 .Select(child => child!)
                 .ToList();
-            
-            var stack = new Stack<(List<string> Folders, string RootPath, string CascadingPath)>();
-            stack.Push((children, fullFolderPath, cascadingPath));
 
-            while (stack.Count > 0)
+            if (children.Count == 0) continue;
+
+            var childMappings = MapTemplates(children, fullFolderPath, cascadingPath, logger);
+
+            foreach (var child in childMappings)
             {
-                var (currentFolders, currentRootPath, currentCascadingPath) = stack.Pop();
-
-                foreach (var folder in currentFolders)
-                {
-                    var currentFullFolderPath = Path.Combine(currentRootPath, folder);
-                    if (!Directory.Exists(currentFullFolderPath))
-                    {
-                        logger?.LogDebug("⚠️  Skipping missing folder: {Folder}", folder);
-                        continue;
-                    }
-
-                    var localCascadingTemplatePath = Path.Combine(currentFullFolderPath, "cascading-template.razor");
-                    var localTemplatePath = Path.Combine(currentFullFolderPath, "template.razor");
-
-                    if (File.Exists(localCascadingTemplatePath) && File.Exists(localTemplatePath))
-                    {
-                        logger?.LogWarning("⚠️  Folder {FullFolderPath} contains both local and cascading templates. Skipping.", currentFullFolderPath);
-                        continue;
-                    }
-
-                    var templatePath = File.Exists(localTemplatePath) ? localTemplatePath : (File.Exists(localCascadingTemplatePath) ? localCascadingTemplatePath : currentCascadingPath);
-                    if (string.IsNullOrEmpty(templatePath))
-                    {
-                        logger?.LogDebug("⚠️  No template.razor found in {Folder}, skipping.", folder);
-                        continue;
-                    }
-
-                    var markdownFiles = Directory.GetFiles(currentFullFolderPath, "*.md");
-                    if (markdownFiles.Length == 0)
-                    {
-                        logger?.LogDebug("⚠️  No markdown files found in {Folder}, skipping.", folder);
-                        continue;
-                    }
-
-                    foreach (var mdPath in markdownFiles)
-                    {
-                        templateMappings.Add(mdPath, templatePath);
-                    }
-
-                    var subdirectories = Directory.GetDirectories(currentFullFolderPath)
-                        .Select(Path.GetFileName)
-                        .Where(child =>
-                            child != null &&
-                            !child.StartsWith('.') &&
-                            !child.Equals("obj", StringComparison.OrdinalIgnoreCase) &&
-                            !child.Equals("bin", StringComparison.OrdinalIgnoreCase))
-                        .Select(child => child!)
-                        .ToList();
-
-                    if (subdirectories.Count > 0)
-                    {
-                        stack.Push((subdirectories, currentFullFolderPath, templatePath));
-                    }
-                }
+                templateMappings.Add(child.Key, child.Value);
             }
         }
-        
+
         return templateMappings;
     }
 }
