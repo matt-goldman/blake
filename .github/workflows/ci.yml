@@ -95,6 +95,7 @@ jobs:
 
       - name: Pack ${{ matrix.project.name }}
         run: |
+          dotnet build ${{ matrix.project.path }} --configuration Release
           dotnet pack ${{ matrix.project.path }} \
             --configuration Release \
             -p:PackageVersion=${{ needs.generate-version.outputs.new_version }} \
