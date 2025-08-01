@@ -275,7 +275,13 @@ class Program
                 logger.LogInformation("No template specified, creating a new Blazor WASM site using the default template.");
                 var process = new Process
                 {
-                    StartInfo = new ProcessStartInfo("dotnet", "new blazorwasm")
+                    StartInfo = new ProcessStartInfo("dotnet", $"new blazorwasm -o \"{directory}\"")
+                    {
+                        RedirectStandardOutput  = true,
+                        RedirectStandardError   = true,
+                        UseShellExecute         = false,
+                        CreateNoWindow          = true
+                    }
                 };
                 
                 var processResult = process.Start();
@@ -284,7 +290,8 @@ class Program
 
                 if (process.ExitCode == 0)
                 {
-                    var initResult = await SiteGenerator.InitAsync($"{newSiteName}.csproj", true, logger);
+                    var fileName = Path.Combine(directory, $"{newSiteName}.csproj");
+                    var initResult = await SiteGenerator.InitAsync(fileName, true, logger);
 
                     if (initResult == 0)
                     {
