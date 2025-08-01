@@ -250,7 +250,7 @@ internal static class SiteGenerator
             .Select(f => f!)
             .ToList();
 
-        var templateMappings = MapTemplates(folders, options.ProjectPath, null);
+        var templateMappings = MapTemplates(folders, options.ProjectPath, null, logger);
         
         // Pre-bake: Load existing markdown files into the context
         foreach (var mapping in templateMappings)
