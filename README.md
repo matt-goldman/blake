@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://blakessg.org" target="_blank" title="Go to the Blake website"><img width="196px" alt="blake logo" src="https://raw.githubusercontent.com/matt-goldman/blake/refs/heads/main/assets/blake.svg?token=GHSAT0AAAAAADGARELE4TEW34XGEDG4XKGK2DWYLBQ"></a>
+<a href="https://blake-ssg.org" target="_blank" title="Go to the Blake website"><img width="196px" alt="blake logo" src="https://raw.githubusercontent.com/matt-goldman/blake/refs/heads/main/assets/blake.svg"></a>
 
 # Blake
 
