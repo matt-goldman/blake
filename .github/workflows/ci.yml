@@ -70,13 +70,9 @@ jobs:
       new_version: ${{ steps.tag_bump.outputs.new_tag }}
 
   publish:
-     uses: ./.github/workflows/reusable-publish.yml
-     with:
-      project_path: ${{ matrix.project.path }}
-      version: ${{ needs.generate-version.outputs.new_version }}
-     secrets: inherit
-     needs: generate-version
-     strategy:
+    runs-on: ubuntu-latest
+    needs: generate-version
+    strategy:
       matrix:
         project:
           - name: Blake.Types
@@ -87,3 +83,26 @@ jobs:
             path: src/Blake.BuildTools/Blake.BuildTools.csproj
           - name: Blake.CLI
             path: src/Blake.CLI/Blake.CLI.csproj
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Pack ${{ matrix.project.name }}
+        run: |
+          dotnet pack ${{ matrix.project.path }} \
+            --configuration Release \
+            -p:PackageVersion=${{ needs.generate-version.outputs.new_version }} \
+            -o packages
+
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push packages/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
