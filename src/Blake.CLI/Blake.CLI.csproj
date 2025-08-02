@@ -46,6 +46,10 @@
 		<PackageReference Include="Blake.BuildTools" Version="*-*" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.7" />
+	</ItemGroup>
+	
   <ItemGroup>
     <None Remove="sample-page.md" />
     <Content Include="sample-page.md">
