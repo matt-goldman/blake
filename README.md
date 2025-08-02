@@ -4,7 +4,15 @@
 
 # Blake
 
+| `Blake.Types` | `Blake.MarkdownParser` | `Blake.BuildTools` | `Blake.CLI` |
+|-------------|----------------------|------------------|-----------|
+| ![NuGet Version](https://img.shields.io/nuget/v/Blake.Types?style=for-the-badge) | ![NuGet Version](https://img.shields.io/nuget/v/Blake.MarkdownParser?style=for-the-badge)| ![NuGet Version](https://img.shields.io/nuget/v/Blake.BuildTools?style=for-the-badge) | ![NuGet Version](https://img.shields.io/nuget/v/Blake.CLI?style=for-the-badge) |
+
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/matt-goldman/blake/ci.yml?branch=main&style=for-the-badge)
+
 </div>
+
+---
 
 **Bake your Blazor into beautiful static sites.**
 
