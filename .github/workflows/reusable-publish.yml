@@ -48,7 +48,7 @@ jobs:
 
       - name: Build
         run: |
-          dotnet build ${{ inputs.project_path }} --configuration Release --no-restore --verbosity minimal
+          dotnet build ${{ inputs.project_path }} --configuration Release
 
       - name: Pack
         run: |
