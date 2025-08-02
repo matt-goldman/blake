@@ -60,6 +60,9 @@ public static class ProjectFileBuilder
     <Content Remove=""**/template.razor"" />
     <Compile Remove=""**/template.razor"" />
     <None Include=""**/template.razor"" />
+    <Content Remove=""**/cascading-template.razor"" />
+    <Compile Remove=""**/cascading-template.razor"" />
+    <None Include=""**/cascading-template.razor"" />
   </ItemGroup>";
 
         projectContent = projectContent.Insert(projectEndIndex, $"{Environment.NewLine}{blakeContentFolders}{Environment.NewLine}");
