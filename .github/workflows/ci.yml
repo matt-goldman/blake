@@ -85,7 +85,7 @@ jobs:
       wait_for_package_id: Blake.Types
       wait_for_package_version: ${{ needs.generate-version.outputs.new_version }}
     secrets: inherit
-    needs: publish-types
+    needs: [publish-types, generate-version]
 
   publish-buildtools:
     uses: ./.github/workflows/reusable-publish.yml
@@ -95,7 +95,7 @@ jobs:
       wait_for_package_id: Blake.MarkdownParser
       wait_for_package_version: ${{ needs.generate-version.outputs.new_version }}
     secrets: inherit
-    needs: publish-markdownparser
+    needs: [publish-markdownparser, generate-version]
 
   publish-cli:
     uses: ./.github/workflows/reusable-publish.yml
@@ -105,4 +105,4 @@ jobs:
       wait_for_package_id: Blake.BuildTools
       wait_for_package_version: ${{ needs.generate-version.outputs.new_version }}
     secrets: inherit
-    needs: publish-buildtools
+    needs: [publish-buildtools, generate-version]
