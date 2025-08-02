@@ -54,6 +54,7 @@ jobs:
         run: |
           dotnet pack ${{ inputs.project_path }} \
             --configuration Release \
+            --no-build \
             -p:PackageVersion=${{ inputs.version }} \
             -o packages
 
