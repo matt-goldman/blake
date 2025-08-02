@@ -20,7 +20,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for ${{ inputs.wait_for_package_id }} to be available on NuGet
+      - name: Wait for ${{ inputs.wait_for_package_id }} version ${{ inputs.wait_for_package_version }} to be available on NuGet
         if: ${{ inputs.wait_for_package_id && inputs.wait_for_package_version }}
         run: |
             PACKAGE_ID_LOWER=$(echo "${{ inputs.wait_for_package_id }}" | tr '[:upper:]' '[:lower:]')
