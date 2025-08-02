@@ -69,40 +69,40 @@ jobs:
     outputs:
       new_version: ${{ steps.tag_bump.outputs.new_tag }}
 
-  publish:
-    runs-on: ubuntu-latest
+  publish-types:
+    uses: ./.github/workflows/reusable-publish.yml
+    with:
+      project_path: src/Blake.Types/Blake.Types.csproj
+      version: ${{ needs.generate-version.outputs.new_version }}
+    secrets: inherit
     needs: generate-version
-    strategy:
-      matrix:
-        project:
-          - name: Blake.Types
-            path: src/Blake.Types/Blake.Types.csproj
-          - name: Blake.MarkdownParser
-            path: src/Blake.MarkdownParser/Blake.MarkdownParser.csproj
-          - name: Blake.BuildTools
-            path: src/Blake.BuildTools/Blake.BuildTools.csproj
-          - name: Blake.CLI
-            path: src/Blake.CLI/Blake.CLI.csproj
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  publish-markdownparser:
+    uses: ./.github/workflows/reusable-publish.yml
+    with:
+      project_path: src/Blake.MarkdownParser/Blake.MarkdownParser.csproj
+      version: ${{ needs.generate-version.outputs.new_version }}
+      wait_for_package_id: Blake.Types
+      wait_for_package_version: ${{ needs.generate-version.outputs.new_version }}
+    secrets: inherit
+    needs: publish-types
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
+  publish-buildtools:
+    uses: ./.github/workflows/reusable-publish.yml
+    with:
+      project_path: src/Blake.BuildTools/Blake.BuildTools.csproj
+      version: ${{ needs.generate-version.outputs.new_version }}
+      wait_for_package_id: Blake.MarkdownParser
+      wait_for_package_version: ${{ needs.generate-version.outputs.new_version }}
+    secrets: inherit
+    needs: publish-markdownparser
 
-      - name: Pack ${{ matrix.project.name }}
-        run: |
-          dotnet pack ${{ matrix.project.path }} \
-            --configuration Release \
-            -p:PackageVersion=${{ needs.generate-version.outputs.new_version }} \
-            -o packages
-
-      - name: Push to NuGet
-        run: |
-          dotnet nuget push packages/*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+  publish-cli:
+    uses: ./.github/workflows/reusable-publish.yml
+    with:
+      project_path: src/Blake.CLI/Blake.CLI.csproj
+      version: ${{ needs.generate-version.outputs.new_version }}
+      wait_for_package_id: Blake.BuildTools
+      wait_for_package_version: ${{ needs.generate-version.outputs.new_version }}
+    secrets: inherit
+    needs: publish-buildtools

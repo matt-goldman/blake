@@ -1,0 +1,66 @@
+name: Reusable Publish Workflow
+
+on:
+  workflow_call:
+    inputs:
+      project_path:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      wait_for_package_id:
+        required: false
+        type: string
+      wait_for_package_version:
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for ${{ inputs.wait_for_package_id }} to be available on NuGet
+        if: ${{ inputs.wait_for_package_id && inputs.wait_for_package_version }}
+        run: |
+            PACKAGE_ID_LOWER=$(echo "${{ inputs.wait_for_package_id }}" | tr '[:upper:]' '[:lower:]')
+            PACKAGE_URL="https://api.nuget.org/v3-flatcontainer/$PACKAGE_ID_LOWER/${{ inputs.wait_for_package_version }}/$PACKAGE_ID_LOWER.${{ inputs.wait_for_package_version }}.nupkg"
+
+            echo "Polling for: $PACKAGE_URL"
+            for i in {1..30}; do
+            if curl --head --silent --fail "$PACKAGE_URL" > /dev/null; then
+                echo "Package available!"
+                break
+            fi
+            echo "Not yet available... retrying in 10s"
+            sleep 10
+            done
+
+            echo "Done waiting (or max retries reached)"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build
+        run: |
+          dotnet build ${{ inputs.project_path }} --configuration Release --no-restore --verbosity minimal
+
+      - name: Pack
+        run: |
+          dotnet pack ${{ inputs.project_path }} \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion=${{ inputs.version }} \
+            -o packages
+
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push packages/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
