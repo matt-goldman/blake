@@ -199,7 +199,7 @@ internal static class PluginLoader
             }
             catch (Exception ex)
             {
-                logger?.LogError("Error loading plugin from {file}: {ex.Message}, {ex}", file, ex.Message, ex);
+                logger?.LogError("Error loading plugin from {file}", file, ex);
             }
         }
     }
