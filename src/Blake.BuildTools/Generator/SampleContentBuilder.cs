@@ -81,7 +81,7 @@ public static class SampleContentBuilder
                 {
                     navMenuContent = navMenuContent.Insert(insertIndex, $"{Environment.NewLine}{newMenuItem}{Environment.NewLine}");
                     await File.WriteAllTextAsync(navMenuPath, navMenuContent);
-                    logger?.LogInformation($"✅ Updated NavMenu.razor with dynamic content links.");
+                    logger?.LogInformation("✅ Updated NavMenu.razor with dynamic content links.");
                 }
                 else
                 {
