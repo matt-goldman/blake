@@ -127,7 +127,7 @@ public class TemplateService : ITemplateService
         }
         else
         {
-            logger?.LogError($"Template directory '{newSiteDirectory}' does not exist.");
+            logger?.LogError("Template directory '{newSiteDirectory}' does not exist.", newSiteDirectory);
             return -1;
         }
 
