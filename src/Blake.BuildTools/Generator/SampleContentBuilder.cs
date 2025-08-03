@@ -1,8 +1,10 @@
-﻿namespace Blake.BuildTools.Generator;
+﻿using Microsoft.Extensions.Logging;
+
+namespace Blake.BuildTools.Generator;
 
 public static class SampleContentBuilder
 {
-    public static async Task InitSampleContent(string projectFilePath)
+    public static async Task InitSampleContent(string projectFilePath, ILogger? logger)
     {
         var pagesFolder = Path.Combine(Path.GetDirectoryName(projectFilePath) ?? string.Empty, "Pages");
         if (!Directory.Exists(pagesFolder))
@@ -15,11 +17,11 @@ public static class SampleContentBuilder
         if (!File.Exists(samplePagePath))
         {
             await File.WriteAllTextAsync(samplePagePath, SamplePageContent);
-            Console.WriteLine($"✅ Sample page created at: {samplePagePath}");
+            logger?.LogInformation("✅ Sample page created at: {samplePagePath}", samplePagePath);
         }
         else
         {
-            Console.WriteLine($"⚠️  Sample page already exists at: {samplePagePath}");
+            logger?.LogInformation("Sample page already exists at: {samplePagePath}", samplePagePath);
         }
 
         // Add sample template
@@ -27,11 +29,11 @@ public static class SampleContentBuilder
         if (!File.Exists(templatePath))
         {
             await File.WriteAllTextAsync(templatePath, SampleTemplate);
-            Console.WriteLine($"✅ Sample template created at: {templatePath}");
+            logger?.LogInformation("✅ Sample template created at: {templatePath}", templatePath);
         }
         else
         {
-            Console.WriteLine($"⚠️  Sample template already exists at: {templatePath}");
+            logger?.LogInformation("Sample template already exists at: {templatePath}", templatePath);
         }
 
         // Add sample component
@@ -46,11 +48,11 @@ public static class SampleContentBuilder
         if (!File.Exists(sampleComponentPath))
         {
             await File.WriteAllTextAsync(sampleComponentPath, SampleComponent);
-            Console.WriteLine($"✅ Sample component created at: {sampleComponentPath}");
+           logger?.LogInformation("✅ Sample component created at: {sampleComponentPath}", sampleComponentPath);
         }
         else
         {
-            Console.WriteLine($"⚠️  Sample component already exists at: {sampleComponentPath}");
+            logger?.LogInformation("Sample component already exists at: {sampleComponentPath}", sampleComponentPath);
         }
 
         // update the nav menu
@@ -79,11 +81,11 @@ public static class SampleContentBuilder
                 {
                     navMenuContent = navMenuContent.Insert(insertIndex, $"{Environment.NewLine}{newMenuItem}{Environment.NewLine}");
                     await File.WriteAllTextAsync(navMenuPath, navMenuContent);
-                    Console.WriteLine($"✅ Updated NavMenu.razor with dynamic content links.");
+                    logger?.LogInformation("✅ Updated NavMenu.razor with dynamic content links.");
                 }
                 else
                 {
-                    Console.WriteLine("⚠️  Could not find </nav> tag in NavMenu.razor to insert dynamic content links.");
+                    logger?.LogWarning("Could not find </nav> tag in NavMenu.razor to insert dynamic content links.");
                 }
             }
         }

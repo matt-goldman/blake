@@ -102,7 +102,7 @@ internal static class SiteGenerator
 
     public static async Task<int> InitAsync(string projectFile, bool? includeSampleContent = false, ILogger? logger = null)
     {
-        var csprojResult = await ProjectFileBuilder.InitProjectFile(projectFile);
+        var csprojResult = await ProjectFileBuilder.InitProjectFile(projectFile, logger);
 
         if (csprojResult != 0)
         {
@@ -145,13 +145,14 @@ internal static class SiteGenerator
         if (includeSampleContent == true)
         {
             logger?.LogInformation("📝 Adding sample content to the project...");
-            await SampleContentBuilder.InitSampleContent(projectFile);
+            await SampleContentBuilder.InitSampleContent(projectFile, logger);
             if (!importsUpdated)
             {
                 logger?.LogWarning("⚠️  _Imports.razor was not found or updated. Sample content may not work as expected.");
             }
         }
 
+        // The following outputs should always be logged, irrespective of the logger being null or not and irrespective of verbosity settings
         Console.WriteLine("✅ Blake has been configured successfully.");
         Console.WriteLine("Run 'blake bake' to generate the site content.");
         Console.WriteLine("Run 'dotnet run' to run your new Blake site.");
