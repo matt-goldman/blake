@@ -120,7 +120,7 @@ public class TemplateService : ITemplateService
                 if (File.Exists(gitFilePath))
                 {
                     File.Delete(gitFilePath);
-                    logger?.LogDebug($"Removed {gitFile} from the cloned template.");
+                    logger?.LogDebug("Removed {gitFile} from the cloned template.", gitFile);
                 }
             }
             logger?.LogDebug("Removed .git directory from the cloned template.");
