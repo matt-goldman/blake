@@ -38,7 +38,7 @@ internal static class SiteGenerator
         var config = GetConfiguration(options.Arguments);
 
         // Load plugins
-        var plugins = PluginLoader.LoadPlugins(options.ProjectPath, config);
+        var plugins = PluginLoader.LoadPlugins(options.ProjectPath, config, logger);
 
         // Run BeforeBakeAsync for each plugin
         if (plugins.Count > 0)
