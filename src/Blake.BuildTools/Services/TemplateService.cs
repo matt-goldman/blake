@@ -191,7 +191,7 @@ public class TemplateService : ITemplateService
             {
                 var sourceFilePath = Path.Combine(sourcePath, gitFile);
                 File.Copy(backupFilePath, sourceFilePath, true);
-                logger?.LogDebug("Restored {gitFile} from backup to {sourceFilePath}", gitFile, backupFilePath);
+                logger?.LogDebug("Restored {gitFile} from backup to {sourceFilePath}", gitFile, sourceFilePath);
             }
         }
     }
