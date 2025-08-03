@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Reflection;
@@ -36,7 +37,7 @@ public class TemplateService : ITemplateService
         return templates.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || t.ShortName.Equals(name, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<int> CloneTemplateAsync (string name, string? destinationPath = null, Guid? templateId = null, string? repoUrl = null)
+    public async Task<int> CloneTemplateAsync (string name, string? destinationPath = null, Guid? templateId = null, string? repoUrl = null, ILogger? logger = null)
     {
         string templateName;
 
@@ -50,7 +51,7 @@ public class TemplateService : ITemplateService
         
             if (template == null)
             {
-                Console.WriteLine($"Template with ID '{templateId}' or name '{name}' not found.");
+                logger?.LogError("Template with ID '{templateId}' or name '{name}' not found.", templateId, name);
                 return -1;
             }
 
@@ -65,15 +66,15 @@ public class TemplateService : ITemplateService
         // backup existing git folder and files first
         if (Directory.Exists(destinationPath ?? string.Empty) && Directory.GetFiles(destinationPath ?? string.Empty, ".git", SearchOption.AllDirectories).Length != 0)
         {
-            Console.WriteLine("Existing .git directory found. Backing it up before cloning the new template...");
+            logger?.LogDebug("Existing .git directory found. Backing it up before cloning the new template...");
             var backupPath = Path.Combine(destinationPath ?? string.Empty, ".git_backup");
-            
-            BackupGitFiles(destinationPath ?? string.Empty, backupPath);
+
+            BackupGitFiles(destinationPath ?? string.Empty, backupPath, logger);
 
             requiresGitRestore = true;
         }
 
-        Console.WriteLine($"🛠️  Creating new site from template '{templateName}'...");
+        logger?.LogInformation("🛠️  Creating new site from template '{templateName}'...", templateName);
         
         var process = new Process
         {
@@ -89,7 +90,7 @@ public class TemplateService : ITemplateService
         };
         
         // Start the git clone process
-        Console.WriteLine($"Cloning template from {repoUrl}...");
+        logger?.LogInformation("Cloning template from {repoUrl}...", repoUrl);
         
         var cloneResult = process.Start();
 
@@ -97,15 +98,14 @@ public class TemplateService : ITemplateService
         
         if (process.ExitCode != 0)
         {
-            Console.WriteLine("Failed to clone template. Error output:");
             var errorOutput = await process.StandardError.ReadToEndAsync();
-            Console.WriteLine(errorOutput);
+            logger?.LogError("Failed to clone template '{templateName}': {errorOutput}", templateName, errorOutput);
             return -1;
         }
         
-        Console.WriteLine($"Template '{templateName}' copied successfully.");
-        
-        Console.WriteLine("Cleaning up the cloned directory...");
+        logger?.LogInformation("Template '{templateName}' cloned successfully to '{destinationPath}'.", templateName, destinationPath ?? Directory.GetCurrentDirectory());
+
+        logger?.LogDebug("Cleaning up the cloned directory...");
         var newSiteDirectory = destinationPath ?? Directory.GetCurrentDirectory();
         if (Directory.Exists(newSiteDirectory))
         {
@@ -120,28 +120,28 @@ public class TemplateService : ITemplateService
                 if (File.Exists(gitFilePath))
                 {
                     File.Delete(gitFilePath);
-                    Console.WriteLine($"Removed {gitFile} from the cloned template.");
+                    logger?.LogDebug($"Removed {gitFile} from the cloned template.");
                 }
             }
-            Console.WriteLine("Removed .git directory from the cloned template.");
+            logger?.LogDebug("Removed .git directory from the cloned template.");
         }
         else
         {
-            Console.WriteLine($"Template directory '{newSiteDirectory}' does not exist.");
+            logger?.LogError($"Template directory '{newSiteDirectory}' does not exist.");
             return -1;
         }
 
         if (requiresGitRestore)
         {
-            Console.WriteLine("Restoring the original .git directory from backup...");
+            logger?.LogDebug("Restoring the original .git directory from backup...");
             var backupPath = Path.Combine(destinationPath ?? string.Empty, ".git_backup");
-            RestoreGitFiles(destinationPath ?? string.Empty, backupPath);
+            RestoreGitFiles(destinationPath ?? string.Empty, backupPath, logger);
         }
 
         return 0;
     }
 
-    private void BackupGitFiles(string sourcePath, string backupPath)
+    private static void BackupGitFiles(string sourcePath, string backupPath, ILogger? logger)
     {
         if (!Directory.Exists(sourcePath)) return;
         
@@ -153,7 +153,7 @@ public class TemplateService : ITemplateService
         if (Directory.Exists(gitDirectory))
         {
             Directory.Move(gitDirectory, Path.Combine(backupPath, ".git"));
-            Console.WriteLine("Existing .git directory backed up successfully.");
+            logger?.LogDebug("Existing .git directory backed up successfully.");
         }
         
         // also backup .gitignore and other git related files
@@ -165,12 +165,12 @@ public class TemplateService : ITemplateService
             {
                 var backupFilePath = Path.Combine(backupPath, gitFile);
                 File.Copy(sourceFilePath, backupFilePath, true);
-                Console.WriteLine($"Backed up {gitFile} to {backupFilePath}");
+                logger?.LogDebug("Backed up {gitFile} to {backupFilePath}", gitFile, backupFilePath);
             }
         }
     }
 
-    private void RestoreGitFiles(string sourcePath, string backupPath)
+    private static void RestoreGitFiles(string sourcePath, string backupPath, ILogger? logger)
     {
         if (!Directory.Exists(backupPath)) return;
         
@@ -179,7 +179,7 @@ public class TemplateService : ITemplateService
         if (Directory.Exists(gitBackupDirectory))
         {
             Directory.Move(gitBackupDirectory, Path.Combine(sourcePath, ".git"));
-            Console.WriteLine("Restored .git directory from backup successfully.");
+            logger?.LogDebug("Restored .git directory from backup successfully.");
         }
         
         // also restore .gitignore and other git related files
@@ -191,7 +191,7 @@ public class TemplateService : ITemplateService
             {
                 var sourceFilePath = Path.Combine(sourcePath, gitFile);
                 File.Copy(backupFilePath, sourceFilePath, true);
-                Console.WriteLine($"Restored {gitFile} from backup to {sourceFilePath}");
+                logger?.LogDebug("Restored {gitFile} from backup to {sourceFilePath}", gitFile, backupFilePath);
             }
         }
     }

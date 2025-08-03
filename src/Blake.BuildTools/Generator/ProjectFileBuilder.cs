@@ -1,21 +1,23 @@
-﻿namespace Blake.BuildTools.Generator;
+﻿using Microsoft.Extensions.Logging;
+
+namespace Blake.BuildTools.Generator;
 
 public static class ProjectFileBuilder
 {
-    public static async Task<int> InitProjectFile(string projectFilePath)
+    public static async Task<int> InitProjectFile(string projectFilePath, ILogger? logger)
     {
         var projectContent = await File.ReadAllTextAsync(projectFilePath);
 
         if (!projectContent.Contains("<Project Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\">"))
         {
-            Console.WriteLine("Error: The specified project is not a Blazor WebAssembly app.");
+            logger?.LogError("The specified project is not a Blazor WebAssembly app.");
             return 1;
         }
 
         // Check if the project already has Blake configured
         if (projectContent.Contains("<PackageReference Include=\"Blake.Types\""))
         {
-            Console.WriteLine("Blake is already configured in this project.");
+            logger?.LogInformation("Blake is already configured in this project.");
             return 0;
         }
 
@@ -30,7 +32,7 @@ public static class ProjectFileBuilder
             var itemGroupIndex = projectContent.LastIndexOf("</ItemGroup>", StringComparison.Ordinal);
             if (itemGroupIndex == -1)
             {
-                Console.WriteLine("Error: Project file does not contain a valid ItemGroup.");
+                logger?.LogError("Project file does not contain a valid ItemGroup.");
                 return 1;
             }
 
@@ -47,7 +49,7 @@ public static class ProjectFileBuilder
         var projectEndIndex = projectContent.LastIndexOf("</Project>", StringComparison.Ordinal);
         if (projectEndIndex == -1)
         {
-            Console.WriteLine("Error: Project file does not end with </Project>.");
+            logger?.LogError("Project file does not end with </Project>.");
             return 1;
         }
 

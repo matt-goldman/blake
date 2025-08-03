@@ -1,21 +1,21 @@
 ﻿using Markdig.Extensions.CustomContainers;
 using Markdig.Renderers;
 using Markdig.Renderers.Html;
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace Blake.MarkdownParser;
 
-public class DefaultContainerRenderer(bool UseDefaultRenderers, bool UseRazorRenderers) : HtmlObjectRenderer<CustomContainer>
+public class DefaultContainerRenderer(bool UseDefaultRenderers, bool UseRazorRenderers, ILogger? logger = null) : HtmlObjectRenderer<CustomContainer>
 {
     private static readonly string[] _containerTypes = ["exercise", "warning", "tip", "info", "note"];
 
-    private readonly HashSet<CustomContainer> _rendered = new();
+    private readonly HashSet<CustomContainer> _rendered = [];
 
     protected override void Write(HtmlRenderer renderer, CustomContainer container)
     {
         if (container == null || _rendered.Contains(container))
         {
-            Debug.WriteLine("⚠️ Skipping already-rendered container to avoid recursion.");
+            logger?.LogDebug("Skipping already-rendered container to avoid recursion.");
             return;
         }
 
@@ -57,11 +57,11 @@ public class DefaultContainerRenderer(bool UseDefaultRenderers, bool UseRazorRen
         {
             if (ReferenceEquals(child, container))
             {
-                Debug.WriteLine("❌ Detected self-referencing container block");
+                logger?.LogWarning("❌ Detected self-referencing container block");
                 continue; // or return;
             }
 
-            Debug.WriteLine($"🧱 Rendering child of type: {child.GetType().Name}");
+            logger?.LogDebug("🧱 Rendering child of type: {type}", child.GetType().Name);
 
 
             renderer.Write(child);

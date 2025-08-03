@@ -2,10 +2,11 @@ using Markdig;
 using Markdig.Extensions.CustomContainers;
 using Markdig.Parsers;
 using Markdig.Renderers;
+using Microsoft.Extensions.Logging;
 
 namespace Blake.MarkdownParser;
 
-public class DefaultContainerExtension(bool UseDefaultRenderers, bool UseRazorRenderers) : IMarkdownExtension
+public class DefaultContainerExtension(bool UseDefaultRenderers, bool UseRazorRenderers, ILogger? logger = null) : IMarkdownExtension
 {
     public void Setup(MarkdownPipelineBuilder pipeline)
     {
@@ -34,7 +35,7 @@ public class DefaultContainerExtension(bool UseDefaultRenderers, bool UseRazorRe
             else
             {
                 // fallback: add to end
-                pipeline.BlockParsers.Add(new SafeContainerParser());
+                pipeline.BlockParsers.Add(new SafeContainerParser(logger));
             }
 
         }
@@ -50,7 +51,7 @@ public class DefaultContainerExtension(bool UseDefaultRenderers, bool UseRazorRe
             if (!htmlRenderer.ObjectRenderers.Contains<DefaultContainerRenderer>())
             {
                 // Must be inserted before CodeBlockRenderer
-                htmlRenderer.ObjectRenderers.Insert(0, new DefaultContainerRenderer(UseDefaultRenderers, UseRazorRenderers));
+                htmlRenderer.ObjectRenderers.Insert(0, new DefaultContainerRenderer(UseDefaultRenderers, UseRazorRenderers, logger));
             }
         }
     }
