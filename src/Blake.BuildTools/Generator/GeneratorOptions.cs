@@ -10,7 +10,7 @@ internal class GenerationOptions
 
     public bool IncludeDrafts { get; init; } = false;
 
-    public bool Clean { get; set; } = false;
+    public bool Clean { get; init; } = false;
 
     public string[] Arguments { get; init; } = [];
 }
