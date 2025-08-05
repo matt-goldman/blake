@@ -378,7 +378,7 @@ internal static class SiteGenerator
 
             if (markdownFiles.Length == 0)
             {
-                logger?.LogDebug("⚠️  No markdown files found in {Folder}, skipping.", folder);
+                logger?.LogDebug("⚠️  No markdown files found in {Folder}. Continuing to process child folders if any.", folder);
             }
             else
             {
