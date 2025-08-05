@@ -27,6 +27,13 @@ internal static class SiteGenerator
             logger?.LogError("Error: Project path '{OptionsProjectPath}' does not exist.", options.ProjectPath);
             return;
         }
+
+        if (options.Clean && Directory.Exists(options.OutputPath))
+        {
+            logger?.LogInformation("🧹 Cleaning output directory: {OptionsOutputPath}", options.OutputPath);
+            Directory.Delete(options.OutputPath, true);
+        }
+
         if (!Directory.Exists(options.OutputPath))
         {
             Directory.CreateDirectory(options.OutputPath);
