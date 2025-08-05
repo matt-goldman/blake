@@ -27,6 +27,13 @@ internal static class SiteGenerator
             logger?.LogError("Error: Project path '{OptionsProjectPath}' does not exist.", options.ProjectPath);
             return;
         }
+
+        if (options.Clean && Directory.Exists(options.OutputPath))
+        {
+            logger?.LogInformation("🧹 Cleaning output directory: {OptionsOutputPath}", options.OutputPath);
+            Directory.Delete(options.OutputPath, true);
+        }
+
         if (!Directory.Exists(options.OutputPath))
         {
             Directory.CreateDirectory(options.OutputPath);
@@ -345,7 +352,6 @@ internal static class SiteGenerator
             var fullFolderPath = Path.Combine(rootPath, folder);
             if (!Directory.Exists(fullFolderPath))
             {
-
                 logger?.LogDebug("⚠️  Skipping missing folder: {Folder}", folder);
                 continue;
             }
@@ -372,13 +378,15 @@ internal static class SiteGenerator
 
             if (markdownFiles.Length == 0)
             {
-                logger?.LogDebug("⚠️  No markdown files found in {Folder}, skipping.", folder);
-                continue;
+                logger?.LogDebug("⚠️  No markdown files found in {Folder}. Continuing to process child folders if any.", folder);
             }
-
-            foreach (var mdPath in markdownFiles)
+            else
             {
-                templateMappings.Add(mdPath, templatePath);
+                logger?.LogDebug("📄 Mapping templates for {MarkdownFilesCount} markdown file(s) in {Folder}", markdownFiles.Length, folder);
+                foreach (var mdPath in markdownFiles)
+                {
+                    templateMappings.Add(mdPath, templatePath);
+                }
             }
 
             var children = Directory.GetDirectories(fullFolderPath)
