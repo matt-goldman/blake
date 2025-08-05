@@ -352,7 +352,6 @@ internal static class SiteGenerator
             var fullFolderPath = Path.Combine(rootPath, folder);
             if (!Directory.Exists(fullFolderPath))
             {
-
                 logger?.LogDebug("⚠️  Skipping missing folder: {Folder}", folder);
                 continue;
             }
@@ -380,12 +379,14 @@ internal static class SiteGenerator
             if (markdownFiles.Length == 0)
             {
                 logger?.LogDebug("⚠️  No markdown files found in {Folder}, skipping.", folder);
-                continue;
             }
-
-            foreach (var mdPath in markdownFiles)
+            else
             {
-                templateMappings.Add(mdPath, templatePath);
+                logger?.LogDebug("📄 Mapping templates for {MarkdownFilesCount} markdown file(s) in {Folder}", markdownFiles.Length, folder);
+                foreach (var mdPath in markdownFiles)
+                {
+                    templateMappings.Add(mdPath, templatePath);
+                }
             }
 
             var children = Directory.GetDirectories(fullFolderPath)
