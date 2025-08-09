@@ -46,16 +46,18 @@ dotnet tool install -g blake
 # Create from template
 blake new --template tailwind-sample
 
-# Or start fresh
-blake new
+# Or init an existing Blazor WASM site
+blake init
 ```
 
 ### 3️⃣ Start building
 ```bash
 blake bake && dotnet run
+# or
+blake serve  # does both bake and serve
 ```
 
-**That's it!** ✨ Your static site is ready at `localhost:5000`
+**That's it!** ✨ Your static site is ready at your configured port
 
 ### 🔧 Advanced usage
 
@@ -102,10 +104,10 @@ blake new --list
 
 Love Hugo, Jekyll, or Gatsby? They're fantastic! But if you're a .NET developer who wants:
 
-- ❌ **Hugo:** Learn Go templating + TOML/YAML config  
-- ❌ **Jekyll:** Learn Liquid templating + Ruby ecosystem  
-- ❌ **Gatsby:** Learn GraphQL + React + complex build chains  
-- ✅ **Blake:** Use .NET knowledge you already have  
+- 😭 **Hugo:** Learn Go templating + TOML/YAML config  
+- 😭 **Jekyll:** Learn Liquid templating + Ruby ecosystem  
+- 😭 **Gatsby:** Learn GraphQL + React + complex build chains  
+- 🤩 **Blake:** Use .NET knowledge you already have  
 
 **Blake doesn't try to be everything to everyone.** It tries to be exactly what feels intuitive to .NET developers who just want to write and publish.
 
