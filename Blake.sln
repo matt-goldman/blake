@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{02EA681E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blake.BuildTools.Tests", "tests\Blake.BuildTools.Tests\Blake.BuildTools.Tests.csproj", "{9C155437-760A-455B-BBC1-F796D99260F5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blake.IntegrationTests", "tests\Blake.IntegrationTests\Blake.IntegrationTests.csproj", "{0787D435-88F8-4A7F-9E92-22242ADB796E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,10 @@ Global
 		{9C155437-760A-455B-BBC1-F796D99260F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C155437-760A-455B-BBC1-F796D99260F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C155437-760A-455B-BBC1-F796D99260F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0787D435-88F8-4A7F-9E92-22242ADB796E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0787D435-88F8-4A7F-9E92-22242ADB796E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0787D435-88F8-4A7F-9E92-22242ADB796E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0787D435-88F8-4A7F-9E92-22242ADB796E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +59,7 @@ Global
 		{5D2BD125-1BB4-4522-86D9-56240A326532} = {CE10179B-DB31-4AD1-981F-E5BD8EEB7272}
 		{E5249E1A-28D0-4D80-85AF-A997F8CAED32} = {CE10179B-DB31-4AD1-981F-E5BD8EEB7272}
 		{9C155437-760A-455B-BBC1-F796D99260F5} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{0787D435-88F8-4A7F-9E92-22242ADB796E} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BC536414-6B7F-4AB4-BB45-A17A5BFFACCB}
