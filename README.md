@@ -4,138 +4,130 @@
 
 # Blake
 
+### 🍞 **Bake your Blazor into beautiful static sites**
+
+*The static site generator for .NET developers who want familiar tools, not foreign languages.*
+
 | `Blake.Types` | `Blake.MarkdownParser` | `Blake.BuildTools` | `Blake.CLI` |
 |-------------|----------------------|------------------|-----------|
 | ![NuGet Version](https://img.shields.io/nuget/v/Blake.Types?style=for-the-badge) | ![NuGet Version](https://img.shields.io/nuget/v/Blake.MarkdownParser?style=for-the-badge)| ![NuGet Version](https://img.shields.io/nuget/v/Blake.BuildTools?style=for-the-badge) | ![NuGet Version](https://img.shields.io/nuget/v/Blake.CLI?style=for-the-badge) |
 
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/matt-goldman/blake/ci.yml?branch=main&style=for-the-badge)
 
-[Read the docs](https://www.blake-ssg.org/)
-
-> **Note:** The docs are a work in progress, but are also built with Blake.
+**[📚 Read the docs](https://www.blake-ssg.org/)** • **[🚀 Quick Start](#-quick-start)** • **[🌟 See it in action](#-see-it-in-action)**
 
 </div>
 
 ---
 
-**Bake your Blazor into beautiful static sites.**
+## 🌟 See it in action
 
-> **Note:** This is an ongoing, experimental WIP
+**Live examples built with Blake:**
 
-## Quick start
+🌐 **[Blake Documentation](https://blake-ssg.org)** - The official Blake docs site  
+*Modern documentation with clean design and full-text search*
 
-### Install the CLI:
+🎨 **[Tailwind Sample Blog](https://tailwindsample.blake-ssg.org)** - A beautiful blog template  
+*Responsive blog with Tailwind CSS styling and modern typography*
 
+---
+
+## 🚀 Quick start
+
+Get up and running in seconds:
+
+### 1️⃣ Install Blake globally
 ```bash
 dotnet tool install -g blake
 ```
 
-### Generate static content:
-
+### 2️⃣ Create a new site
 ```bash
-blake bake
+# Create from template
+blake new --template tailwind-sample
+
+# Or init an existing Blazor WASM site
+blake init
 ```
 
-### Run a Blake site:
-
+### 3️⃣ Start building
 ```bash
-dotnet run
+blake bake && dotnet run
+# or
+blake serve  # does both bake and serve
 ```
 
-(simples!)
+**That's it!** ✨ Your static site is ready at your configured port
 
-### Add Blake to an existing site:
+### 🔧 Advanced usage
 
+**Add Blake to existing Blazor app:**
 ```bash
 blake init
 ```
 
-### Build a regular Blazor site with Blake:
-
+**Generate content only:**
 ```bash
 blake bake
 ```
 
-_Why?_ A Blake template is just a Blazor WASM app with an MSBuild task that uses Blake to generate Razor files from templates. If for whatever reason you don't want to do that, Blake can generate files in any Blazor WASM app. If you have `template.razor` files that follow Blake templating conventions, and Markdown files in the same folders, Blake will generate Razor files by combining the content and template. If you want to keep your templated content generation separate from your build and run, you can do it this way.
-
-### Create a new Blake site:
-
+**List all templates:**
 ```bash
-blake new
-```
-
-Optionally to specify a template, use `--template` or the alias `-t` and specify a template name:
-
-```bash
-blake new --template docs
-```
-
-or:
-
-```bash
-blake new -t blog
+blake new --list
 ```
 
 
-## Why Blake?
+## ✨ Why Blake?
 
-Blake (a portmanteau of Blazor and Bake) was born from my frustration with existing static site generators. They're all good in their own ways, but I wanted something closer to my comfort zone.
+**Tired of learning new templating languages just to blog?** Blake brings static site generation to your comfort zone.
 
-Yes, pushing yourself and learning new things is great. But I already have enough new things to learn. Documenting what I learn on my blog shouldn't be yet another thing to learn.
+### 🎯 Built for .NET developers
+- **No foreign syntax** - Use Razor templates you already know
+- **No config chaos** - Folder structure determines everything  
+- **No build mysteries** - Just Blazor, just bake, just works
 
-**Guided by Occam's Razor: the solution with the fewest assumptions is often the best.**
+### 🧠 Guided by Occam's Razor
+*The solution with the fewest assumptions is often the best.*
 
-Other static site generators often feel like Rube Goldberg machines:
+**Other generators:** "Put layouts here, templates there, config everywhere, sprinkle fairy dust, pray it builds."
 
-> "Ok so you put layouts in this folder, then you template them using this weird syntax, then you sprinkle in cryptic config, then you manage separate folders for posts vs pages, then finally with a sprinkle of fairy dust it _might_ build."
+**Blake:** "Put content wherever makes sense. Add a `template.razor`. Done."
 
-**Blake's approach:**
+### ⚡ Key features
+✅ **Convention over configuration** - Smart defaults, zero setup  
+✅ **Familiar tooling** - Razor, Markdown, Blazor components  
+✅ **Plugin system** - Extend functionality without complexity  
+✅ **Live templates** - Community-driven starter templates  
+✅ **Modern workflow** - Integrates with existing .NET tools  
 
-* Put whatever you want wherever you want.
-* If a folder contains a `template.razor`, file and that template includes recognized placeholders, any Markdown files in that folder will be rendered with it and added to the global site index.
-* Routes are auto-generated based on folder structure.
+## 🤔 Blake vs. Others
 
-✅ No arcane templating languages.
-✅ No endless config.
-✅ No hidden assumptions.
-✅ Just Blazor. Just .NET. Just bake.
+Love Hugo, Jekyll, or Gatsby? They're fantastic! But if you're a .NET developer who wants:
 
-Blake embodies the true meaning of Occam's Razor — it minimizes assumptions and keeps things honest, intuitive, and familiar for developers who already know .NET and HTML.
+- 😭 **Hugo:** Learn Go templating + TOML/YAML config  
+- 😭 **Jekyll:** Learn Liquid templating + Ruby ecosystem  
+- 😭 **Gatsby:** Learn GraphQL + React + complex build chains  
+- 🤩 **Blake:** Use .NET knowledge you already have  
 
-## Why not Hugo, Jekyll, etc.?
-
-Other static site generators are fantastic. Each has its own strengths, thriving communities, and great track records. But they also often come with assumptions that may not suit every developer:
-
-* Assumes you want to learn a new templating language (e.g., Liquid, Go templates).
-* Assumes you're happy to wrangle extra config formats (YAML, TOML, etc.).
-* Assumes you'll maintain separate folders for content, layouts, and partials.
-* Assumes you're willing to adopt an entirely new mental model for building and structuring a site.
-
-Blake's philosophy is different: fewer assumptions.
-
-* You already know .NET.
-* You already use Blazor or Razor syntax.
-* You want to drop content wherever it makes sense to you.
-
-Blake doesn't try to be everything to everyone; it tries to be exactly what feels intuitive to Blazor and .NET developers who just want to write and publish.
-
-## Blake Philosophy
-
-Blake is built around simplicity, minimalism, and transparency. No config, no ceremony, just Razor and Markdown, rendered where you put them.
-
-We believe:
-
-* Content and structure should be self-evident from folder layout.
-* If it's not in the content or the template, it doesn't exist.
-* Complexity belongs in templates or plugins, not the generator.
-* Developers deserve to understand and own their build process.
-
-→ [Read the full Blake Philosophy](/docs/philosophy.md)
-
-## Docs
-
-Check the wiki (coming soon) for detail on templating conventions, documentation for the starter templates, and how to create (and share) your own templates.
+**Blake doesn't try to be everything to everyone.** It tries to be exactly what feels intuitive to .NET developers who just want to write and publish.
 
 ---
 
-**Let's bake. 🍞🚀**
+## 📖 Documentation
+
+**[Complete documentation →](https://blake-ssg.org)**
+
+- [Getting Started Guide](https://blake-ssg.org/getting-started)
+- [Template Development](https://blake-ssg.org/templates) 
+- [Plugin Development](https://blake-ssg.org/plugins)
+- [Blake Philosophy](https://blake-ssg.org/philosophy)
+
+---
+
+<div align="center">
+
+**Ready to bake?** 🍞✨
+
+[**Get Started →**](https://blake-ssg.org) • [**View Templates →**](https://blake-ssg.org/templates) • [**Join Community →**](https://github.com/matt-goldman/blake/discussions)
+
+</div>
