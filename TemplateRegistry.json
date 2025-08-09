@@ -12,7 +12,7 @@
         },
         {
             "Id": "535c153e-c7a9-432f-8195-cc6b4b6cfa3f",
-            "ShortName": "vlakedocs",
+            "ShortName": "blakedocs",
             "Name": "Blake Docs",
             "Description": "Template used for the Blake documentation site",
             "MainCategory": "Docs",
