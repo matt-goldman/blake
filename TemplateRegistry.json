@@ -9,6 +9,16 @@
             "Author": "Matt Goldman",
             "LastUpdated": "2025-07-15T12:00:00Z",
             "RepositoryUrl": "https://github.com/matt-goldman/BlakeSimpleTailwindSample"
+        },
+        {
+            "Id": "535c153e-c7a9-432f-8195-cc6b4b6cfa3f",
+            "ShortName": "vlakedocs",
+            "Name": "Blake Docs",
+            "Description": "Template used for the Blake documentation site",
+            "MainCategory": "Docs",
+            "Author": "Matt Goldman",
+            "LastUpdated": "2025-08-09T12:00:00Z",
+            "RepositoryUrl": "https://github.com/matt-goldman/BlakeDocs"
         }
     ]
 }
