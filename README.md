@@ -46,6 +46,9 @@ dotnet tool install -g blake
 # Create from template
 blake new --template tailwind-sample
 
+# Create without a template (uses the default Blazor WASM template)
+blake new
+
 # Or init an existing Blazor WASM site
 blake init
 ```
