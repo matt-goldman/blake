@@ -105,12 +105,12 @@ blake new --list
 
 ## 🤔 Blake vs. Others
 
-Love Hugo, Jekyll, or Gatsby? They're fantastic! But if you're a .NET developer who wants:
+Love Hugo, Jekyll, or Gatsby? They're fantastic! But they make too many assumptions:
 
-- 😭 **Hugo:** Learn Go templating + TOML/YAML config  
-- 😭 **Jekyll:** Learn Liquid templating + Ruby ecosystem  
-- 😭 **Gatsby:** Learn GraphQL + React + complex build chains  
-- 🤩 **Blake:** Use .NET knowledge you already have  
+- 😭 **Hugo:** Assumes you're happy to learn Go templating + TOML/YAML config  
+- 😭 **Jekyll:** Assumes you're cool with Liquid templating + Ruby ecosystem  
+- 😭 **Gatsby:** Assumes you want a static site with GraphQL + React + complex build chains  
+- 🤩 **Blake:** Assumes you have the .NET CLI installed
 
 **Blake doesn't try to be everything to everyone.** It tries to be exactly what feels intuitive to .NET developers who just want to write and publish.
 
