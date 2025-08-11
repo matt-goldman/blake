@@ -14,7 +14,7 @@ public class PluginLoaderTests
         var pluginPath = Path.GetFullPath(Path.Combine(
             Directory.GetCurrentDirectory(),
             "..", "..", "..", "..", "..", "tests", "Blake.IntegrationTests", 
-            "TestPluginWithDependencies", "bin", "Debug", "net8.0", 
+            "TestPluginWithDependencies", "bin", "Debug", "net9.0", 
             "BlakePlugin.TestPluginWithDependencies.dll"
         ));
 
