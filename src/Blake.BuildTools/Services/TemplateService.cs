@@ -9,7 +9,7 @@ public class TemplateService : ITemplateService
 {
     private static HttpClient? _httpClient;
     
-    private static HttpClient CurrentClient => _httpClient ??= new HttpClient { BaseAddress = new Uri("https://raw.githubusercontent.com/matt-goldman/blake/refs/heads/main") };
+    private static HttpClient CurrentClient => _httpClient ??= new HttpClient { BaseAddress = new Uri("https://raw.githubusercontent.com") };
     
     public async Task<IEnumerable<SiteTemplate>> GetTemplatesAsync()
     {
@@ -20,7 +20,7 @@ public class TemplateService : ITemplateService
         var templates = System.Text.Json.JsonSerializer.Deserialize<TemplateRegistry>(fileContent);
         return templates?.Templates ?? [];
 #else
-        var templates = await CurrentClient.GetFromJsonAsync<TemplateRegistry>("TemplateRegistry.json");
+        var templates = await CurrentClient.GetFromJsonAsync<TemplateRegistry>("matt-goldman/blake/refs/heads/main/TemplateRegistry.json");
         return templates?.Templates ?? [];
 #endif
     }
