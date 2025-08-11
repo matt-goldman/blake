@@ -134,6 +134,9 @@ For new site templates:
 - Prefer explicit error handling over exceptions where appropriate
 - Include XML documentation for public APIs
 - Use dependency injection patterns where applicable
+- Do not make any formatting changes unless explicitly requested
+- Do not include files in commits that contain only formatting or style changes, unless explicitly requested
+- Do not downgrade .NET versions - Blake is built to work with .NET 9 and above
 
 ### Testing
 
