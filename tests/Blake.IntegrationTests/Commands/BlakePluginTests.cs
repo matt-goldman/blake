@@ -412,6 +412,70 @@ public class BlakePluginTests : TestFixtureBase
         Assert.DoesNotContain("plugin", result.ErrorText, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task BlakeBake_WithPluginWithDependencies_LoadsAndExecutesCorrectly()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-plugins-with-deps");
+        var projectName = "PluginWithDepsTest";
+        
+        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        
+        FileSystemHelper.CreateMarkdownFile(
+            Path.Combine(testDir, "Posts", "test.md"),
+            "Test Post",
+            "Content"
+        );
+
+        FileSystemHelper.CreateRazorTemplate(
+            Path.Combine(testDir, "Posts", "template.razor"),
+            @"@page ""/posts/{Slug}""
+<h1>@Model.Title</h1>
+<div>@((MarkupString)Html)</div>"
+        );
+
+        // Build the test plugin with dependencies first
+        var pluginWithDepsPath = Path.Combine(GetCurrentDirectory(), "tests", "Blake.IntegrationTests", "TestPluginWithDependencies");
+        var pluginBuildResult = await RunProcessAsync("dotnet", "build", pluginWithDepsPath);
+        Assert.Equal(0, pluginBuildResult.ExitCode);
+
+        // Add plugin project reference to the test project
+        var csprojPath = Path.Combine(testDir, $"{projectName}.csproj");
+        var csprojContent = File.ReadAllText(csprojPath);
+        
+        var pluginProjectPath = Path.Combine(pluginWithDepsPath, "BlakePlugin.TestPluginWithDependencies.csproj");
+        var relativePath = Path.GetRelativePath(testDir, pluginProjectPath);
+        
+        var updatedCsproj = csprojContent.Replace("</Project>", 
+            $@"  <ItemGroup>
+    <ProjectReference Include=""{relativePath}"" />
+  </ItemGroup>
+
+</Project>");
+        File.WriteAllText(csprojPath, updatedCsproj);
+
+        // Act
+        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --verbosity Debug");
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        
+        // Plugin should have created marker files with JSON serialization
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".plugin-with-deps-before-bake.txt"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".plugin-with-deps-after-bake.txt"));
+        
+        // Verify the JSON content was written correctly (meaning dependencies loaded)
+        var beforeContent = File.ReadAllText(Path.Combine(testDir, ".plugin-with-deps-before-bake.txt"));
+        var afterContent = File.ReadAllText(Path.Combine(testDir, ".plugin-with-deps-after-bake.txt"));
+        
+        Assert.Contains("Plugin with dependencies loaded successfully", beforeContent);
+        Assert.Contains("Plugin dependencies working in AfterBakeAsync", afterContent);
+        
+        // Should show plugin logs
+        Assert.Contains("TestPluginWithDependencies: BeforeBakeAsync called", result.OutputText);
+        Assert.Contains("TestPluginWithDependencies: AfterBakeAsync called", result.OutputText);
+    }
+
     private static string GetCurrentDirectory()
     {
         var currentDir = Directory.GetCurrentDirectory();

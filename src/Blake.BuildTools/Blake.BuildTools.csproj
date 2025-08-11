@@ -54,6 +54,7 @@
     <!-- Set InternalVisibleTo to allow access to internal members for testing -->
     <ItemGroup>
       <InternalsVisibleTo Include="Blake.CLI" />
+      <InternalsVisibleTo Include="Blake.BuildTools.Tests" />
     </ItemGroup>
 
 </Project>
