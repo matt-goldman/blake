@@ -185,7 +185,11 @@ internal static class PluginLoader
 
             try
             {
-                var assembly = Assembly.LoadFrom(file);
+                // Create a new load context for this plugin to resolve its dependencies
+                var loadContext = new PluginLoadContext(file);
+                var assemblyName = new AssemblyName(Path.GetFileNameWithoutExtension(file));
+                var assembly = loadContext.LoadFromAssemblyName(assemblyName);
+                
                 var pluginTypes = assembly.GetTypes()
                     .Where(t => typeof(IBlakePlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
 
@@ -199,7 +203,8 @@ internal static class PluginLoader
             }
             catch (Exception ex)
             {
-                logger?.LogError("Error loading plugin from {file}", file, ex);
+                logger?.LogError("Error loading plugin from {file}: {message}", file, ex.Message);
+                logger?.LogDebug(ex, "Full error details for plugin {file}", file);
             }
         }
     }
