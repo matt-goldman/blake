@@ -115,8 +115,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
 <h1>@Model.Title</h1>
 <p>By @Model.Metadata[""author""] on @Model.Date?.ToString(""yyyy-MM-dd"")</p>
 <p>Tags: @string.Join("", "", Model.Tags)</p>
-<div>@((MarkupString)Html)</div>"
-        );
+<div>@((MarkupString)Html)</div>",
+            true);
 
         // Act
         var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
