@@ -47,7 +47,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         
         // Create markdown files
         FileSystemHelper.CreateMarkdownFile(
-            Path.Combine(testDir, "Posts", "first-post.md"),
+            Path.Combine(testDir, "Posts", "FirstPost.md"),
             "First Post",
             "This is my first post content.",
             new Dictionary<string, object> { ["date"] = DateTime.Today }
@@ -64,7 +64,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
 <h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<div>@Body</div>"
         );
 
         // Act
@@ -77,15 +77,15 @@ public class BlakeBakeCommandTests : TestFixtureBase
         // Should generate Razor files
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated", "posts"));
-        FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".generated", "posts", "FirstPost.razor"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".generated", "posts", "Firstpost.razor"));
         
         // Generated file should contain the content
         FileSystemHelper.AssertFileContains(
-            Path.Combine(testDir, ".generated", "posts", "FirstPost.razor"),
+            Path.Combine(testDir, ".generated", "posts", "Firstpost.razor"),
             "First Post"
         );
         FileSystemHelper.AssertFileContains(
-            Path.Combine(testDir, ".generated", "posts", "FirstPost.razor"),
+            Path.Combine(testDir, ".generated", "posts", "Firstpost.razor"),
             "first post content"
         );
     }
