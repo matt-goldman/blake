@@ -7,14 +7,9 @@ namespace Blake.BuildTools.Utils;
 /// A custom AssemblyLoadContext that provides isolated plugin loading with dependency resolution.
 /// Each plugin gets its own load context to avoid dependency conflicts.
 /// </summary>
-internal class PluginLoadContext : AssemblyLoadContext
+internal class PluginLoadContext(string pluginPath) : AssemblyLoadContext(isCollectible: true)
 {
-    private readonly AssemblyDependencyResolver _resolver;
-
-    public PluginLoadContext(string pluginPath) : base(isCollectible: true)
-    {
-        _resolver = new AssemblyDependencyResolver(pluginPath);
-    }
+    private readonly AssemblyDependencyResolver _resolver = new(pluginPath);
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {

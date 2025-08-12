@@ -187,8 +187,7 @@ internal static class PluginLoader
             {
                 // Create a new load context for this plugin to resolve its dependencies
                 var loadContext = new PluginLoadContext(file);
-                var assemblyName = new AssemblyName(Path.GetFileNameWithoutExtension(file));
-                var assembly = loadContext.LoadFromAssemblyName(assemblyName);
+                var assembly = loadContext.LoadFromAssemblyPath(file);
                 
                 var pluginTypes = assembly.GetTypes()
                     .Where(t => typeof(IBlakePlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);

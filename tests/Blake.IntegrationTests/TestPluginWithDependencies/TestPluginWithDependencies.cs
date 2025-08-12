@@ -1,6 +1,7 @@
 using Blake.BuildTools;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace BlakePlugin.TestPluginWithDependencies;
 
@@ -10,15 +11,27 @@ public class TestPluginWithDependencies : IBlakePlugin
     {
         logger?.LogInformation("TestPluginWithDependencies: BeforeBakeAsync called");
         
-        // Use Newtonsoft.Json to test dependency loading
-        var testObject = new { Message = "Plugin with dependencies loaded successfully", PageCount = context.MarkdownPages.Count };
-        var serialized = JsonConvert.SerializeObject(testObject);
+        // Use SixLabors.ImageSharp to test dependency loading
+        using var image = new Image<Rgba32>(100, 100);
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (int x = 0; x < row.Length; x++)
+                {
+                    row[x] = Color.Blue;
+                }
+            }
+        });
         
-        logger?.LogInformation("TestPluginWithDependencies: Serialized data: {SerializedData}", serialized);
+        var testMessage = $"Plugin with dependencies loaded successfully. Created {image.Width}x{image.Height} image. PageCount: {context.MarkdownPages.Count}";
+        
+        logger?.LogInformation("TestPluginWithDependencies: {TestMessage}", testMessage);
         
         // Create a marker file to prove the plugin ran with dependencies
         var testFilePath = Path.Combine(context.ProjectPath, ".plugin-with-deps-before-bake.txt");
-        File.WriteAllText(testFilePath, serialized);
+        File.WriteAllText(testFilePath, testMessage);
         
         return Task.CompletedTask;
     }
@@ -27,12 +40,12 @@ public class TestPluginWithDependencies : IBlakePlugin
     {
         logger?.LogInformation("TestPluginWithDependencies: AfterBakeAsync called with {PageCount} generated pages", context.GeneratedPages.Count);
         
-        // Use Newtonsoft.Json again to ensure dependency is still available
-        var testObject = new { Message = "Plugin dependencies working in AfterBakeAsync", GeneratedPageCount = context.GeneratedPages.Count };
-        var serialized = JsonConvert.SerializeObject(testObject);
+        // Use SixLabors.ImageSharp again to ensure dependency is still available
+        using var image = new Image<Rgba32>(50, 50);
+        var testMessage = $"Plugin dependencies working in AfterBakeAsync. Created {image.Width}x{image.Height} image. GeneratedPageCount: {context.GeneratedPages.Count}";
         
         var testFilePath = Path.Combine(context.ProjectPath, ".plugin-with-deps-after-bake.txt");
-        File.WriteAllText(testFilePath, serialized);
+        File.WriteAllText(testFilePath, testMessage);
         
         return Task.CompletedTask;
     }
