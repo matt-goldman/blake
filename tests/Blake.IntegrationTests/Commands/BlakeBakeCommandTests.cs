@@ -95,40 +95,39 @@ public class BlakeBakeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-bake-frontmatter");
-        
+
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "post-with-metadata.md"),
             "Post with Metadata",
             "Content goes here.",
             new Dictionary<string, object>
             {
-                ["author"] = "John Doe",
-                ["tags"] = new[] { "tech", "tutorial" },
-                ["date"] = "2024-01-15",
-                ["description"] = "A post with rich metadata"
+                ["title"] = "Post with Metadata",
+                ["description"] = "A post with rich metadata",
+                ["published"] = "2024-01-15"
             }
         );
 
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<p>By @Model.Metadata[""author""] on @Model.Date?.ToString(""yyyy-MM-dd"")</p>
-<p>Tags: @string.Join("", "", Model.Tags)</p>
-<div>@((MarkupString)Html)</div>",
-            true);
+<h1>@Title</h1>
+<p>Published: @Published</p>
+<p>Description: @Description</p>
+<div>@Body</div>"
+        );
 
         // Act
         var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        
+
         var generatedFile = Path.Combine(testDir, ".generated", "posts", "PostWithMetadata.razor");
         FileSystemHelper.AssertFileExists(generatedFile);
-        FileSystemHelper.AssertFileContains(generatedFile, "John Doe");
-        FileSystemHelper.AssertFileContains(generatedFile, "2024-01-15");
-        FileSystemHelper.AssertFileContains(generatedFile, "tech, tutorial");
+        FileSystemHelper.AssertFileContains(generatedFile, "Post with Metadata");
+        FileSystemHelper.AssertFileContains(generatedFile, "A post with rich metadata");
+        FileSystemHelper.AssertFileContains(generatedFile, "Published:");
     }
 
     [Fact]

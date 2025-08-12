@@ -121,7 +121,9 @@ await builder.Build().RunAsync();");
             content = content + Environment.NewLine + Environment.NewLine + "@code { " + Environment.NewLine + "}";
         }
 
-        var modelCode = @"
+        if (addModel == true && content.Contains("Model", StringComparison.OrdinalIgnoreCase))
+        {
+            var modelCode = @"
     private PageModel? Model { get; set; }
     private string id = ""@Id"";
 
@@ -130,6 +132,14 @@ await builder.Build().RunAsync();");
         Model = Blake.Generated.GeneratedContentIndex.GetPages().FirstOrDefault(p => p.Id == id);
     }
 ";
+            // find the last index of }, insert this code before it
+            var lastBraceIndex = content.LastIndexOf('}');
+            if (lastBraceIndex != -1)
+            {
+                content = content.Insert(lastBraceIndex, modelCode);
+            }
+
+        }
 
         Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
         File.WriteAllText(filePath, content);
