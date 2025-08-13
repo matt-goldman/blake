@@ -54,12 +54,12 @@ public class BlakeInitCommandTests : TestFixtureBase
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Initializing Blake", result.OutputText);
 
-        // Should create Blake-specific folders
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Posts"));
+        // Blake should initialize successfully without creating specific folders by default
+        // The existing Blazor Pages folder should still exist
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Pages"));
         
-        // Should create .generated folder structure
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
+        // Should not create .generated folder until baking
+        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, ".generated"));
     }
 
     [Fact]
@@ -77,9 +77,12 @@ public class BlakeInitCommandTests : TestFixtureBase
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Initializing Blake", result.OutputText);
 
-        // Should create Blake content folders
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Posts"));
+        // Blake should initialize successfully without creating specific folders by default
+        // The existing Blazor Pages folder should still exist  
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Pages"));
+        
+        // Should not create .generated folder until baking
+        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, ".generated"));
     }
 
     [Fact]
@@ -91,16 +94,19 @@ public class BlakeInitCommandTests : TestFixtureBase
         
         // Create a second .csproj file
         File.WriteAllText(Path.Combine(testDir, "SecondProject.csproj"), 
-            "<Project Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>");
+            "<Project Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\"><PropertyGroup><TargetFramework>net9.0</TargetFramework></PropertyGroup></Project>");
 
         // Act
         var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        // Should use the first .csproj file found
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Posts"));
+        
+        // Should successfully initialize (Pages folder exists from Blazor template)
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Pages"));
+        
+        // Should not create Blake-specific content without flag
+        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, "Pages", "SamplePage.md"));
     }
 
     [Fact]
@@ -117,14 +123,16 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
         
-        // Should create sample content
-        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Posts", "hello-world.md"));
+        // Should create sample content in Pages folder (not Posts)
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Pages", "SamplePage.md"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Pages", "template.razor"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Components", "MyContainer.razor"));
         
-        // Should update navigation or layout (check for Blake integration)
-        var navFile = Path.Combine(testDir, "Shared", "NavMenu.razor");
+        // Should update navigation with dynamic content links
+        var navFile = Path.Combine(testDir, "Layout", "NavMenu.razor");
         if (File.Exists(navFile))
         {
-            FileSystemHelper.AssertFileContains(navFile, "Posts");
+            FileSystemHelper.AssertFileContains(navFile, "GeneratedContentIndex.GetPages()");
         }
     }
 
@@ -142,8 +150,9 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
         
-        // Should create sample content
-        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Posts", "hello-world.md"));
+        // Should create sample content in Pages folder (not Posts)
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Pages", "SamplePage.md"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Components", "MyContainer.razor"));
     }
 
     [Fact]
@@ -160,9 +169,10 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
         
-        // Should create directories but not sample files
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Posts"));
-        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, "Posts", "hello-world.md"));
+        // Should not create Blake sample files
+        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, "Pages", "SamplePage.md"));
+        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, "Pages", "template.razor"));
+        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, "Components"));
     }
 
     [Fact]
