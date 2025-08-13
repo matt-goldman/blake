@@ -28,7 +28,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-bake");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "ServeTest");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "ServeTest");
         
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "test-post.md"),
@@ -94,7 +94,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-valid");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "ValidServe");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "ValidServe");
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -115,7 +115,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-options");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "OptionsTest");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "OptionsTest");
         
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "post.md"),
@@ -147,7 +147,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-no-content");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "NoContent");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "NoContent");
         
         // Don't create any Posts or Pages folders
 
@@ -168,7 +168,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-creates-folder");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "CreateFolder");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "CreateFolder");
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
@@ -184,7 +184,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-current-dir");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "CurrentDir");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "CurrentDir");
 
         // Act - Run blake serve without path argument from the project directory
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
@@ -203,7 +203,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-progress");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "Progress");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "Progress");
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -226,7 +226,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-bake-integration");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "BakeIntegration");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "BakeIntegration");
         
         // Create draft content
         FileSystemHelper.CreateMarkdownFile(

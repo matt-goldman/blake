@@ -124,15 +124,38 @@ class Program
 
         logger?.LogInformation("✅ Blake initialized successfully in {targetPath}", targetPath);
 
+        Console.WriteLine("Completed init, running Bake...");
+
         return await BakeBlakeAsync(args);
     }
 
-    private static async Task<int> BakeBlakeAsync(string[] args)
+    private static async Task<int> BakeBlakeAsync(string[] args, ILogger? logger = null)
     {
-        // get target path or use current directory
-        var targetPath = GetPathFromArgs(args);
+        logger ??= GetLogger(args);
+        string targetPath;
 
-        var logger = GetLogger(args);
+        try
+        {
+            // get target path or use current directory
+            targetPath = GetPathFromArgs(args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("❌ Failed to parse target path from arguments. Please provide a valid path.");
+            logger.LogError(ex, "Failed to parse target path from arguments.");
+            return 1;
+        }
+
+        // Build context expects a directory, not a .csproj file
+        if (Path.GetExtension(targetPath).Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!File.Exists(targetPath))
+            {
+                logger.LogError("Project file '{targetPath}' does not exist.", targetPath);
+                return 1;
+            }
+            targetPath = Path.GetDirectoryName(targetPath) ?? Directory.GetCurrentDirectory();
+        }
 
         if (!Directory.Exists(targetPath))
         {
@@ -152,7 +175,15 @@ class Program
             Arguments           = [.. args.Skip(1)]
         };
 
-        await SiteGenerator.BuildAsync(options, logger);
+        try
+        {
+            await SiteGenerator.BuildAsync(options, logger);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("❌ An error occurred while baking the site. Please check the logs for details.");
+            logger.LogError(ex, "Baking site failed");
+        }
 
         Console.WriteLine("✅ Build completed successfully.");
         

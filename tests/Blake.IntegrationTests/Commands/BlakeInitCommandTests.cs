@@ -45,7 +45,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-csproj");
         var projectName = "TestProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         var csprojPath = Path.Combine(testDir, $"{projectName}.csproj");
 
@@ -60,9 +60,6 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Blake should initialize successfully without creating specific folders by default
         // The existing Blazor Pages folder should still exist
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Pages"));
-        
-        // Should not create .generated folder until baking
-        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, ".generated"));
     }
 
     [Fact]
@@ -71,7 +68,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-directory");
         var projectName = "AutoFindProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
         var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
@@ -94,7 +91,7 @@ public class BlakeInitCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-init-multiple-csproj");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "FirstProject");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "FirstProject");
         
         // Create a second .csproj file
         File.WriteAllText(Path.Combine(testDir, "SecondProject.csproj"), 
@@ -119,7 +116,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-sample-content");
         var projectName = "SampleProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
         var result = await RunBlakeCommandAsync($"init \"{testDir}\" --includeSampleContent");
@@ -146,7 +143,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-sample-short");
         var projectName = "SampleProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
         var result = await RunBlakeCommandAsync($"init \"{testDir}\" -s");
@@ -165,7 +162,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-no-sample");
         var projectName = "NoSampleProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
         var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
@@ -185,7 +182,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-sample-content");
         var projectName = "SampleContentProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
         var result = await RunBlakeCommandAsync($"init \"{testDir}\" --includeSampleContent");
@@ -209,7 +206,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-basic");
         var projectName = "BasicProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
         var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
@@ -233,7 +230,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-no-overwrite");
         var projectName = "ExistingProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Create existing content in Pages folder (where Blake actually creates content)
         var pagesDir = Path.Combine(testDir, "Pages");
@@ -264,7 +261,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-init-pipeline");
         var projectName = "PipelineProject";
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         var originalProgramCs = File.ReadAllText(Path.Combine(testDir, "Program.cs"));
 
