@@ -231,7 +231,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
         
-        var generatedFile = Path.Combine(testDir, ".generated", "posts", "Testpost.razor");
+        var generatedFile = Path.Combine(testDir, ".generated", "posts", "Post.razor");
         FileSystemHelper.AssertFileExists(generatedFile);
         FileSystemHelper.AssertFileContains(generatedFile, "post-title");
         FileSystemHelper.AssertFileContains(generatedFile, "post-content");
