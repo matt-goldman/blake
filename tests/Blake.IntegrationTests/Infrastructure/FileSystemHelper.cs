@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Blake.IntegrationTests.Infrastructure;
 
 /// <summary>
@@ -90,6 +92,34 @@ await builder.Build().RunAsync();");
     }
 
     /// <summary>
+    /// Creates a Blazor WASM project using the dotnet CLI template.
+    /// </summary>
+    public static async Task CreateBlazorWasmProjectAsync(string projectPath, string projectName)
+    {
+        Directory.CreateDirectory(projectPath);
+        
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"new blazorwasm -o \"{projectPath}\" -n \"{projectName}\" --framework net9.0",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = new Process { StartInfo = startInfo };
+        process.Start();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            var error = await process.StandardError.ReadToEndAsync();
+            throw new Exception($"Failed to create Blazor WASM project: {error}");
+        }
+    }
+
+    /// <summary>
     /// Creates a markdown file with frontmatter.
     /// </summary>
     public static void CreateMarkdownFile(string filePath, string title, string content, Dictionary<string, object>? frontmatter = null)
@@ -126,6 +156,14 @@ await builder.Build().RunAsync();");
     public static void AssertDirectoryExists(string path, string? message = null)
     {
         Assert.True(Directory.Exists(path), message ?? $"Expected directory to exist: {path}");
+    }
+
+    /// <summary>
+    /// Asserts that a directory does not exist.
+    /// </summary>
+    public static void AssertDirectoryNotExists(string path, string? message = null)
+    {
+        Assert.False(Directory.Exists(path), message ?? $"Expected directory to not exist: {path}");
     }
 
     /// <summary>

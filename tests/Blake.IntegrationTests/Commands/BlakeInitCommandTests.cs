@@ -166,12 +166,35 @@ public class BlakeInitCommandTests : TestFixtureBase
     }
 
     [Fact]
-    // TODO: Blake doesn't do this. Perhaps this test should be updated to verify that the starter content is added if the correct flag is used.
-    public async Task BlakeInit_CreatesNecessaryContentFolders()
+    public async Task BlakeInit_WithSampleContentFlag_CreatesPagesFolder()
     {
         // Arrange
-        var testDir = CreateTempDirectory("blake-init-folders");
-        var projectName = "FolderProject";
+        var testDir = CreateTempDirectory("blake-init-sample-content");
+        var projectName = "SampleContentProject";
+        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+
+        // Act
+        var result = await RunBlakeCommandAsync($"init \"{testDir}\" --includeSampleContent");
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+
+        // Should create Pages folder with sample content (Blake creates content in Pages, not Posts)
+        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Pages"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Pages", "SamplePage.md"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Pages", "template.razor"));
+        
+        // Should create Components folder with sample component
+        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Components"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Components", "MyContainer.razor"));
+    }
+
+    [Fact]
+    public async Task BlakeInit_WithoutSampleContent_DoesNotCreateBlakeContent()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-init-basic");
+        var projectName = "BasicProject";
         FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
 
         // Act
@@ -180,14 +203,17 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
 
-        // Should create Blake content folders
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Posts"));
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Pages"));
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
+        // Should not create Blake-specific content without --includeSampleContent flag
+        // Note: Pages folder might exist from Blazor template, but Blake should not add Blake-specific files
+        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, "Pages", "SamplePage.md"));
+        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, "Pages", "template.razor"));
+        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, "Components"));
+        
+        // Should not create .generated folder until baking
+        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, ".generated"));
     }
 
     [Fact]
-    // TODO: Filenames for sample content are incorrect. Additionally, Blake doesn't create a "Posts" folder by default, the sample content is created in the "Pages" folder. Finally Blake does not return this error message.
     public async Task BlakeInit_DoesNotOverwriteExistingFiles()
     {
         // Arrange
@@ -195,11 +221,13 @@ public class BlakeInitCommandTests : TestFixtureBase
         var projectName = "ExistingProject";
         FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
 
-        // Create existing content
-        var existingPostPath = Path.Combine(testDir, "Posts", "existing-post.md");
-        FileSystemHelper.CreateMarkdownFile(existingPostPath, "Existing Post", "This post already exists.");
+        // Create existing content in Pages folder (where Blake actually creates content)
+        var pagesDir = Path.Combine(testDir, "Pages");
+        Directory.CreateDirectory(pagesDir);
+        var existingPagePath = Path.Combine(pagesDir, "SamplePage.md");
+        FileSystemHelper.CreateMarkdownFile(existingPagePath, "Existing Page", "This page already exists.");
 
-        var originalContent = File.ReadAllText(existingPostPath);
+        var originalContent = File.ReadAllText(existingPagePath);
 
         // Act
         var result = await RunBlakeCommandAsync($"init \"{testDir}\" --includeSampleContent");
@@ -207,12 +235,13 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
 
-        // Should not overwrite existing post
-        var currentContent = File.ReadAllText(existingPostPath);
+        // Should not overwrite existing SamplePage.md
+        var currentContent = File.ReadAllText(existingPagePath);
         Assert.Equal(originalContent, currentContent);
 
-        // Should still create other sample content
-        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Posts", "hello-world.md"));
+        // Should still create template and component if they don't exist
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Pages", "template.razor"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Components", "MyContainer.razor"));
     }
 
     [Fact]
