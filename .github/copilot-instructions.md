@@ -85,7 +85,11 @@ Community templates are managed via `TemplateRegistry.json`:
 
 ### Building the Project
 
-**Note**: Blake targets .NET 9.0, ensure you have the correct SDK installed.
+**Note**: Blake targets .NET 9.0, ensure you have the correct SDK installed. If .NET 9.0 is not available in the environment, install it using:
+```bash
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 9.0
+export PATH="$HOME/.dotnet:$PATH"
+```
 
 ```bash
 # Build the solution
