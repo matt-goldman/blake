@@ -166,6 +166,7 @@ public class BlakeInitCommandTests : TestFixtureBase
     }
 
     [Fact]
+    // TODO: Blake doesn't do this. Perhaps this test should be updated to verify that the starter content is added if the correct flag is used.
     public async Task BlakeInit_CreatesNecessaryContentFolders()
     {
         // Arrange
@@ -185,7 +186,8 @@ public class BlakeInitCommandTests : TestFixtureBase
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
     }
 
-    [Fact] 
+    [Fact]
+    // TODO: Filenames for sample content are incorrect. Additionally, Blake doesn't create a "Posts" folder by default, the sample content is created in the "Pages" folder. Finally Blake does not return this error message.
     public async Task BlakeInit_DoesNotOverwriteExistingFiles()
     {
         // Arrange

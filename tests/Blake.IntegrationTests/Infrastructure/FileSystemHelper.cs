@@ -8,6 +8,7 @@ public static class FileSystemHelper
     /// <summary>
     /// Creates a simple Blazor WASM project structure for testing.
     /// </summary>
+    /// // TODO: Why not just do `dotnet new blazorwasm`?
     public static void CreateMinimalBlazorWasmProject(string projectPath, string projectName)
     {
         Directory.CreateDirectory(projectPath);
