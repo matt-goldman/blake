@@ -45,13 +45,6 @@ public class PluginLoaderTests
 
         // Assert
         Assert.Null(exception);
-        
-        // If no plugins were loaded, check for error messages
-        if (plugins.Count == 0)
-        {
-            Assert.True(false, $"No plugins loaded from {pluginPath}. Error messages: [{string.Join(", ", logger.ErrorMessages)}], Info messages: [{string.Join(", ", logger.InfoMessages)}], Debug messages: [{string.Join(", ", logger.DebugMessages)}]");
-        }
-        
         Assert.Equal(3, plugins.Count); // TestPlugin class has 3 plugin classes
         
         // Check that we have all expected plugins
@@ -108,7 +101,6 @@ public class PluginLoaderTests
     {
         public List<string> ErrorMessages { get; } = new List<string>();
         public List<string> InfoMessages { get; } = new List<string>();
-        public List<string> DebugMessages { get; } = new List<string>();
 
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
         public bool IsEnabled(LogLevel logLevel) => true;
@@ -123,10 +115,6 @@ public class PluginLoaderTests
             else if (logLevel == LogLevel.Information)
             {
                 InfoMessages.Add(message);
-            }
-            else if (logLevel == LogLevel.Debug)
-            {
-                DebugMessages.Add(message);
             }
         }
     }

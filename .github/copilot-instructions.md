@@ -140,6 +140,7 @@ For new site templates:
 - Use dependency injection patterns where applicable
 - Do not make any formatting changes unless explicitly requested
 - Do not include files in commits that contain only formatting or style changes, unless explicitly requested
+- **Do not downgrade .NET versions** - Blake targets .NET 9.0 and is compatible with later versions unless otherwise noted
 - Do not downgrade .NET versions - Blake targets .NET 9.0 and is compatible with later versions unless otherwise noted
 
 ### Testing

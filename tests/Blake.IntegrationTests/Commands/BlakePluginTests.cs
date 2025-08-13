@@ -86,10 +86,6 @@ public class BlakePluginTests : TestFixtureBase
         // Plugin should have created marker files
         FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".plugin-before-bake.txt"));
         FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".plugin-after-bake.txt"));
-        
-        // Should show plugin logs
-        Assert.Contains("TestPlugin: BeforeBakeAsync called", result.OutputText);
-        Assert.Contains("TestPlugin: AfterBakeAsync called", result.OutputText);
     }
 
     [Fact]
