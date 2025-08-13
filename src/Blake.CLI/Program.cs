@@ -120,7 +120,11 @@ class Program
 
         var includeSampleContent = args.Contains("--includeSampleContent") || args.Contains("-s");
 
-        return await SiteGenerator.InitAsync(projectFile, includeSampleContent, logger);
+        await SiteGenerator.InitAsync(projectFile, includeSampleContent, logger);
+
+        logger?.LogInformation("✅ Blake initialized successfully in {targetPath}", targetPath);
+
+        return await BakeBlakeAsync(args);
     }
 
     private static async Task<int> BakeBlakeAsync(string[] args)
