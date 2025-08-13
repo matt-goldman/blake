@@ -63,8 +63,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -112,10 +112,10 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<p>By @Model.Metadata[""author""] on @Model.Date?.ToString(""yyyy-MM-dd"")</p>
-<p>Tags: @string.Join("", "", Model.Tags)</p>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<p>Published on @Published</p>
+<p>@Description</p>
+<div>@Body</div>"
         );
 
         // Act
@@ -156,8 +156,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -189,8 +189,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -220,8 +220,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
 <article>
-<h1 class=""post-title"">@Model.Title</h1>
-<div class=""post-content"">@((MarkupString)Html)</div>
+<h1 class=""post-title"">@Title</h1>
+<div class=""post-content"">@Body</div>
 </article>"
         );
 
@@ -290,8 +290,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -333,8 +333,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -370,8 +370,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -431,8 +431,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -476,8 +476,8 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act

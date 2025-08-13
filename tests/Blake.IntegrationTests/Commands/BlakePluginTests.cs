@@ -22,8 +22,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -54,8 +54,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build the test plugin first
@@ -110,8 +110,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build the test plugin
@@ -208,8 +208,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build and add plugin
@@ -259,8 +259,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build and add plugin that modifies pipeline
@@ -307,8 +307,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build and add plugin
@@ -397,8 +397,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
@@ -430,8 +430,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build the test plugin with dependencies first

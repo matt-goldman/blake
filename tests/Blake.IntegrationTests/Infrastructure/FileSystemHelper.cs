@@ -16,14 +16,14 @@ public static class FileSystemHelper
         var csprojContent = $@"<Project Sdk=""Microsoft.NET.Sdk.BlazorWebAssembly"">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include=""Microsoft.AspNetCore.Components.WebAssembly"" Version=""8.0.0"" />
-    <PackageReference Include=""Microsoft.AspNetCore.Components.WebAssembly.DevServer"" Version=""8.0.0"" PrivateAssets=""all"" />
+    <PackageReference Include=""Microsoft.AspNetCore.Components.WebAssembly"" Version=""9.0.7"" />
+    <PackageReference Include=""Microsoft.AspNetCore.Components.WebAssembly.DevServer"" Version=""9.0.7"" PrivateAssets=""all"" />
   </ItemGroup>
 
 </Project>";

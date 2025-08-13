@@ -39,8 +39,8 @@ public class BlakeServeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act - Start serve command but cancel quickly
@@ -126,8 +126,8 @@ public class BlakeServeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act - Test with disable default renderers flag
@@ -239,8 +239,8 @@ public class BlakeServeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act - Should not include drafts by default

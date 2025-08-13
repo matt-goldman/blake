@@ -10,13 +10,9 @@ public class TestPlugin : IBlakePlugin
     {
         logger?.LogInformation("TestPlugin: BeforeBakeAsync called with {PageCount} markdown pages", context.MarkdownPages.Count);
         
-        // Add some test metadata to demonstrate plugin functionality
-        foreach (var page in context.MarkdownPages)
-        {
-            // Create a test file to prove the plugin ran
-            var testFilePath = Path.Combine(context.ProjectPath, ".plugin-before-bake.txt");
-            File.WriteAllText(testFilePath, $"BeforeBakeAsync called at {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        }
+        // Create a test file to prove the plugin ran
+        var testFilePath = Path.Combine(context.ProjectPath, ".plugin-before-bake.txt");
+        File.WriteAllText(testFilePath, $"BeforeBakeAsync called at {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         
         return Task.CompletedTask;
     }
