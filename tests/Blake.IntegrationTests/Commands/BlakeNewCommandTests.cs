@@ -34,7 +34,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         // Act
 
         // create template registry file in user profile directory
-        EnsureDebugRegistryExists();
+        var created = CreateDebugRegistryIfNotExists();
 
 
         // Has to be run with debug to use local TemplateRegistry.json, otherwise it calls the repo
@@ -51,7 +51,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.Contains(result.OutputText, o => o.Contains(longName2));
 
         // Cleanup the mock TemplateRegistry.json
-        DeleteDebugRegistry();
+        if (created) DeleteDebugRegistry();
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public class BlakeNewCommandTests : TestFixtureBase
     public async Task BlakeNew_WithTemplate_InvalidTemplateName_ShowsError()
     {
         // Arrange
-        EnsureDebugRegistryExists(); // Ensure we have a mock registry for testing
+        var created = CreateDebugRegistryIfNotExists(); // Ensure we have a mock registry for testing
 
         var testDir = CreateTempDirectory("blake-new-invalid-template");
         var projectPath = Path.Combine(testDir, "test-project");
@@ -172,7 +172,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.Contains(result.ErrorText, e => e.Contains("template") ||
                    e.Contains("not found"));
 
-        DeleteDebugRegistry(); // Clean up mock registry
+        if (created) DeleteDebugRegistry(); // Clean up mock registry
     }
 
     [Theory(Skip ="This requires cloning templates, so will need to think about how we ensure a local repo to clone from is created, and that the urls are in the debug registry")]
@@ -182,7 +182,7 @@ public class BlakeNewCommandTests : TestFixtureBase
     {
         // Arrange
 
-        EnsureDebugRegistryExists(); // Ensure we have a mock registry for testing
+        var created = CreateDebugRegistryIfNotExists(); // Ensure we have a mock registry for testing
 
         var testDir = CreateTempDirectory($"blake-new-template-{templateName.Replace(" ", "-")}");
         var projectPath = Path.Combine(testDir, "TestProject");
@@ -207,7 +207,7 @@ public class BlakeNewCommandTests : TestFixtureBase
                        result.ErrorText.Contains("network"));
         }
 
-        DeleteDebugRegistry(); // Clean up mock registry
+        if (created) DeleteDebugRegistry(); // Clean up mock registry
     }
 
     [Fact]
@@ -279,8 +279,10 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.Contains(buildResult.OutputText, o => o.Contains("Build succeeded"));
     }
 
-    private void EnsureDebugRegistryExists()
+    private bool CreateDebugRegistryIfNotExists()
     {
+        bool created = false;
+
         var templateRegistryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".blake", "TemplateRegistry.json");
         if (!File.Exists(templateRegistryPath))
         {
@@ -296,7 +298,11 @@ public class BlakeNewCommandTests : TestFixtureBase
             var jsonContent = System.Text.Json.JsonSerializer.Serialize(registry, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
             Directory.CreateDirectory(Path.GetDirectoryName(templateRegistryPath)!);
             File.WriteAllText(templateRegistryPath, jsonContent);
+
+            created = true;
         }
+
+        return created;
     }
 
     private void DeleteDebugRegistry()
