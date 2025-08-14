@@ -359,7 +359,7 @@ public class BlakePluginTests : TestFixtureBase
         var csprojPath = Path.Combine(testDir, $"{projectName}.csproj");
         var csprojContent = File.ReadAllText(csprojPath);
         
-        var pluginProjectPath = Path.Combine(GetCurrentDirectory(), "tests", "Blake.IntegrationTests", "TestPlugin", "BlakePlugin.TestPlugin.csproj");
+        var pluginProjectPath = Path.Combine(GetCurrentDirectory(), "tests", "Blake.IntegrationTests", "TestPluginWithDependencies", "BlakePlugin.TestPluginWithDependencies.csproj");
         var relativePath = Path.GetRelativePath(testDir, pluginProjectPath);
         
         var updatedCsproj = csprojContent.Replace("</Project>", 
@@ -375,11 +375,12 @@ public class BlakePluginTests : TestFixtureBase
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        
+
         // Should discover and load plugins
-        Assert.True(
-            result.OutputText.Contains("plugin") ||
-            result.OutputText.Contains("TestPlugin:")
+        Assert.Contains(
+            result.OutputText, o => o.Contains("Plugin with dependencies loaded successfully. Created 100x100 image"));
+        Assert.Contains(
+            result.OutputText, o => o.Contains("Plugin dependencies working in AfterBakeAsync. Created 50x50 image")
         );
     }
 
