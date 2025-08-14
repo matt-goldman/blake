@@ -44,7 +44,9 @@ public class BlakeNewCommandTests : TestFixtureBase
                 new (Guid.Empty, shortName2, longName2, "", "", "", DateTime.MinValue, "")
             };
 
-            var jsonContent = System.Text.Json.JsonSerializer.Serialize(templates, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var registry = new TemplateRegistry(templates);
+
+            var jsonContent = System.Text.Json.JsonSerializer.Serialize(registry, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
             Directory.CreateDirectory(Path.GetDirectoryName(templateRegistryPath)!);
             File.WriteAllText(templateRegistryPath, jsonContent);
         }
