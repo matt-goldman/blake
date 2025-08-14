@@ -6,8 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Blake.CLI;
 
-public class Program
+public class Program : IDisposable
 {
+    private static CancellationTokenSource? _cancellationTokenSource;
+
     public static async Task<int> Main(string[] args)
     {
         using var loggerFactory = CreateLoggerFactory(args);
@@ -230,15 +232,43 @@ public class Program
             UseShellExecute = true
         };
 
-        var process = Process.Start(psi);
+        using var process = Process.Start(psi);
+
         if (process == null)
         {
-            Console.WriteLine("❌ Failed to start the process. Please check the configuration and try again.");
+            logger.LogError("Failed to start the process. Please check the configuration and try again.");
             return 1;
         }
-        await process.WaitForExitAsync();
+
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        var waitTask = process.WaitForExitAsync();
+        var cancelTask = Task.Delay(Timeout.InfiniteTimeSpan, _cancellationTokenSource.Token);
+
+        var completed = await Task.WhenAny(waitTask, cancelTask);
+        if (completed != waitTask)
+        {
+            TryGraceful(process);
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+
+            // Catch if the process was killed or exited unexpectedly
+            try { await waitTask; } catch { /* ignore */ }
+        }
+
         return 0;
     }
+
+    static void TryGraceful(Process proc)
+    {
+        // Optional gentle close on Windows if there is a windowed host
+        if (OperatingSystem.IsWindows())
+        {
+            try { if (proc.CloseMainWindow()) return; } catch { /* ignore */ }
+        }
+        // On Unix you could send SIGTERM if you manage process groups.
+    }
+
 
     private static async Task<int> NewSiteAsync(string[] args, ILogger logger)
     {
@@ -408,5 +438,12 @@ public class Program
         }
 
         return Directory.GetCurrentDirectory();
+    }
+
+    public void Dispose()
+    {
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

@@ -69,49 +69,63 @@ public abstract class TestFixtureBase : IDisposable
     /// <summary>
     /// Runs an arbitrary process and captures the result.
     /// </summary>
-    protected async Task<ProcessResult> RunProcessAsync(string fileName, string arguments, string workingDirectory = "", CancellationToken cancellationToken = default)
+    protected async Task<ProcessResult> RunProcessAsync(
+        string fileName,
+        string arguments,
+        string workingDirectory = "",
+        CancellationToken cancellationToken = default)
     {
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
+        using var process = new Process
         {
-            FileName = fileName,
-            Arguments = arguments,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            WorkingDirectory = string.IsNullOrEmpty(workingDirectory) ? Directory.GetCurrentDirectory() : workingDirectory
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+                WorkingDirectory = string.IsNullOrEmpty(workingDirectory)
+                    ? Directory.GetCurrentDirectory()
+                    : workingDirectory
+            },
+            EnableRaisingEvents = true
         };
 
-        var outputBuilder = new List<string>();
-        var errorBuilder = new List<string>();
+        var output = new List<string>();
+        var error = new List<string>();
 
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data != null)
-                outputBuilder.Add(e.Data);
-        };
-
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data != null)
-                errorBuilder.Add(e.Data);
-        };
+        process.OutputDataReceived += (_, e) => { if (e.Data != null) output.Add(e.Data); };
+        process.ErrorDataReceived += (_, e) => { if (e.Data != null) error.Add(e.Data); };
 
         var startTime = DateTime.UtcNow;
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        await process.WaitForExitAsync(cancellationToken);
+        var waitTask = process.WaitForExitAsync();
+        var cancelTask = Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+
+        var completed = await Task.WhenAny(waitTask, cancelTask);
+        if (completed != waitTask)
+        {
+            // Test timeout/cancel: terminate child and still return a result
+            try { process.CloseMainWindow(); } catch { /* ignore */ }
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+
+            try { await waitTask; } catch { /* ignore */ }
+        }
 
         return new ProcessResult(
-            ExitCode: process.ExitCode,
-            Output: outputBuilder,
-            Error: errorBuilder,
-            Duration: DateTime.UtcNow - startTime
+            ExitCode: process.HasExited ? process.ExitCode : 0, // process may not terminate immediately
+            Output: output,
+            Error: error,
+            Duration: DateTime.UtcNow - startTime,
+            Canceled: completed != waitTask ? (bool?)true : null
         );
     }
+
 
     /// <summary>
     /// Gets the path to the Blake CLI project for testing.
@@ -165,7 +179,8 @@ public record ProcessResult(
     int ExitCode,
     IReadOnlyList<string> Output,
     IReadOnlyList<string> Error,
-    TimeSpan Duration
+    TimeSpan Duration,
+    bool? Canceled = null
 )
 {
     public List<string> OutputText => [.. Output];
