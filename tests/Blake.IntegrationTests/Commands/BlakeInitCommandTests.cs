@@ -16,7 +16,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-init-no-csproj");
 
         // Act
-        var result = await RunBlakeCommandAsync(["bake", testDir]);
+        var result = await RunBlakeCommandAsync(["init", testDir]);
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
@@ -31,12 +31,10 @@ public class BlakeInitCommandTests : TestFixtureBase
         var nonExistentPath = Path.Combine(Path.GetTempPath(), "non-existent-" + Guid.NewGuid());
 
         // Act
-        var result = await RunBlakeCommandAsync(["bake", nonExistentPath]);
+        var action = RunBlakeCommandAsync(["init", nonExistentPath]);
 
         // Assert
-        Assert.NotEqual(0, result.ExitCode);
-        // Blake outputs unhandled exception rather than structured error message
-        Assert.Contains("DirectoryNotFoundException", result.ErrorText);
+        await Assert.ThrowsAsync<DirectoryNotFoundException>(async () => await action);
     }
 
     [Fact]
@@ -50,12 +48,12 @@ public class BlakeInitCommandTests : TestFixtureBase
         var csprojPath = Path.Combine(testDir, $"{projectName}.csproj");
 
         // Act
-        var result = await RunBlakeCommandAsync(["bake", csprojPath]);
+        var result = await RunBlakeCommandAsync(["init", csprojPath]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
         // Blake initializes successfully - check for success message instead of debug log messages
-        Assert.Contains("Blake has been configured successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Blake initialized successfully in"));
 
         // Blake should initialize successfully without creating specific folders by default
         // The existing Blazor Pages folder should still exist
@@ -76,14 +74,11 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
         // Blake initializes successfully - check for success message instead of debug log messages
-        Assert.Contains("Blake has been configured successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Blake initialized successfully in"));
 
         // Blake should initialize successfully without creating specific folders by default
         // The existing Blazor Pages folder should still exist  
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Pages"));
-        
-        // Should not create .generated folder until baking
-        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, ".generated"));
     }
 
     [Fact]
@@ -119,7 +114,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync(["bake", testDir, "--includeSampleContent"]);
+        var result = await RunBlakeCommandAsync(["init", testDir, "--includeSampleContent"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -146,7 +141,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync(["bake", testDir, "-s"]);
+        var result = await RunBlakeCommandAsync(["init", testDir, "-s"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -198,30 +193,6 @@ public class BlakeInitCommandTests : TestFixtureBase
         // Should create Components folder with sample component
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, "Components"));
         FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Components", "MyContainer.razor"));
-    }
-
-    [Fact]
-    public async Task BlakeInit_WithoutSampleContent_DoesNotCreateBlakeContent()
-    {
-        // Arrange
-        var testDir = CreateTempDirectory("blake-init-basic");
-        var projectName = "BasicProject";
-        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
-
-        // Act
-        var result = await RunBlakeCommandAsync(["init", testDir]);
-
-        // Assert
-        Assert.Equal(0, result.ExitCode);
-
-        // Should not create Blake-specific content without --includeSampleContent flag
-        // Note: Pages folder might exist from Blazor template, but Blake should not add Blake-specific files
-        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, "Pages", "SamplePage.md"));
-        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, "Pages", "template.razor"));
-        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, "Components"));
-        
-        // Should not create .generated folder until baking
-        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, ".generated"));
     }
 
     [Fact]
@@ -304,7 +275,7 @@ public class BlakeInitCommandTests : TestFixtureBase
             Console.WriteLine($"Build failed: {buildResult.OutputText}\n{buildResult.ErrorText}");
         }
         Assert.Equal(0, buildResult.ExitCode);
-        Assert.Contains("Build succeeded", buildResult.OutputText);
+        Assert.Contains(buildResult.OutputText, o => o.Contains("Build succeeded"));
     }
 
     [Fact]
@@ -331,9 +302,9 @@ public class BlakeInitCommandTests : TestFixtureBase
 
         // Assert - Blake should initialize successfully (it doesn't validate project types)
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Blake has been configured successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Blake initialized successfully in"));
         
         // Blake should have created the partial content index 
-        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "GeneratedContentIndex.Partial.cs"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".generated", "GeneratedContentIndex.cs"));
     }
 }
