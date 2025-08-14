@@ -32,8 +32,8 @@ jobs:
           fi
 
           # Fail if neither preview nor release is set
-          if [[ "$LABELS" != *"preview"* && "$LABELS" != *"release"* ]]; then
-            echo "❌ PR must have either 'preview' or 'release' label."
+          if [[ "$LABELS" != *"preview"* && "$LABELS" != *"release"*  && "$LABELS" != *"norelease"* ]]; then
+            echo "❌ PR must have 'preview', 'release' or 'norelease' label."
             exit 1
           fi
 
@@ -52,6 +52,9 @@ jobs:
           else
             echo "BUMP=patch" >> $GITHUB_ENV
           fi
+
+          # Set NORELEASE as output of this step
+          echo "NORELEASE=${{ env.NORELEASE }}" >> $GITHUB_ENV
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -68,8 +71,11 @@ jobs:
 
     outputs:
       new_version: ${{ steps.tag_bump.outputs.new_tag }}
+      norelease: ${{ steps.tag_bump.outputs.norelease }}
+
 
   publish-types:
+    if: needs.generate-version.outputs.norelease != 'true'
     uses: ./.github/workflows/reusable-publish.yml
     with:
       project_path: src/Blake.Types/Blake.Types.csproj
@@ -78,6 +84,7 @@ jobs:
     needs: generate-version
 
   publish-markdownparser:
+    if: needs.generate-version.outputs.norelease != 'true'
     uses: ./.github/workflows/reusable-publish.yml
     with:
       project_path: src/Blake.MarkdownParser/Blake.MarkdownParser.csproj
@@ -88,6 +95,7 @@ jobs:
     needs: [publish-types, generate-version]
 
   publish-buildtools:
+    if: needs.generate-version.outputs.norelease != 'true'
     uses: ./.github/workflows/reusable-publish.yml
     with:
       project_path: src/Blake.BuildTools/Blake.BuildTools.csproj
@@ -98,6 +106,7 @@ jobs:
     needs: [publish-markdownparser, generate-version]
 
   publish-cli:
+    if: needs.generate-version.outputs.norelease != 'true'
     uses: ./.github/workflows/reusable-publish.yml
     with:
       project_path: src/Blake.CLI/Blake.CLI.csproj
