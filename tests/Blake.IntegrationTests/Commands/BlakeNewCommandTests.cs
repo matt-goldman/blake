@@ -79,7 +79,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         FileSystemHelper.AssertDirectoryExists(Path.Combine(projectPath, "Pages"));
         
         // Should contain sample content because init is called with includeSampleContent=true
-        FileSystemHelper.AssertFileExists(Path.Combine(projectPath, "Pages", "SamplePAge.md"));
+        FileSystemHelper.AssertFileExists(Path.Combine(projectPath, "Pages", "SamplePage.md"));
     }
 
     [Fact]
