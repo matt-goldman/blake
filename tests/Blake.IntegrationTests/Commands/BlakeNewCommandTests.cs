@@ -11,6 +11,11 @@ namespace Blake.IntegrationTests.Commands;
 /// </summary>
 public class BlakeNewCommandTests : TestFixtureBase
 {
+    const string shortName1 = "tailwind-sample";
+    const string shortName2 = "simpledocs";
+    const string longName1 = "Blake Simple Tailwind Sample";
+    const string longName2 = "Blake Simple Docs";
+
     [Fact(Skip ="Blake creates a site with no args. TODO: consider how to test this, it will run it in the assembly folder.")]
     public async Task BlakeNew_WithNoArguments_ShowsHelp()
     {
@@ -27,29 +32,10 @@ public class BlakeNewCommandTests : TestFixtureBase
     public async Task BlakeNew_WithListOption_ShowsAvailableTemplates()
     {
         // Act
-        
+
         // create template registry file in user profile directory
-        const string shortName1 = "tailwind-sample";
-        const string shortName2 = "simpledocs";
-        const string longName1 = "Blake Simple Tailwind Sample";
-        const string longName2 = "Blake Simple Docs";
+        EnsureDebugRegistryExists();
 
-        var templateRegistryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".blake", "TemplateRegistry.json");
-        if(!File.Exists(templateRegistryPath))
-        {
-            // Create a mock TemplateRegistry.json for testing
-            var templates = new List<SiteTemplate>
-            {
-                new (Guid.Empty, shortName1, longName1, "", "", "", DateTime.MinValue, ""),
-                new (Guid.Empty, shortName2, longName2, "", "", "", DateTime.MinValue, "")
-            };
-
-            var registry = new TemplateRegistry(templates);
-
-            var jsonContent = System.Text.Json.JsonSerializer.Serialize(registry, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            Directory.CreateDirectory(Path.GetDirectoryName(templateRegistryPath)!);
-            File.WriteAllText(templateRegistryPath, jsonContent);
-        }
 
         // Has to be run with debug to use local TemplateRegistry.json, otherwise it calls the repo
         var result = await RunBlakeFromDotnetAsync("new --list", debug: true);
@@ -65,10 +51,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.Contains(result.OutputText, o => o.Contains(longName2));
 
         // Cleanup the mock TemplateRegistry.json
-        if (File.Exists(templateRegistryPath))
-        {
-            File.Delete(templateRegistryPath);
-        }
+        DeleteDebugRegistry();
     }
 
     [Fact]
@@ -176,6 +159,8 @@ public class BlakeNewCommandTests : TestFixtureBase
     public async Task BlakeNew_WithTemplate_InvalidTemplateName_ShowsError()
     {
         // Arrange
+        EnsureDebugRegistryExists(); // Ensure we have a mock registry for testing
+
         var testDir = CreateTempDirectory("blake-new-invalid-template");
         var projectPath = Path.Combine(testDir, "test-project");
 
@@ -186,14 +171,19 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains(result.ErrorText, e => e.Contains("template") ||
                    e.Contains("not found"));
+
+        DeleteDebugRegistry(); // Clean up mock registry
     }
 
-    [Theory]
+    [Theory(Skip ="This requires cloning templates, so will need to think about how we ensure a local repo to clone from is created, and that the urls are in the debug registry")]
     [InlineData("tailwind-sample")]
     [InlineData("Blake Simple Tailwind Sample")] // Full name
     public async Task BlakeNew_WithValidTemplate_UsesTemplate(string templateName)
     {
         // Arrange
+
+        EnsureDebugRegistryExists(); // Ensure we have a mock registry for testing
+
         var testDir = CreateTempDirectory($"blake-new-template-{templateName.Replace(" ", "-")}");
         var projectPath = Path.Combine(testDir, "TestProject");
 
@@ -216,6 +206,8 @@ public class BlakeNewCommandTests : TestFixtureBase
                        result.ErrorText.Contains("repository") ||
                        result.ErrorText.Contains("network"));
         }
+
+        DeleteDebugRegistry(); // Clean up mock registry
     }
 
     [Fact]
@@ -285,5 +277,34 @@ public class BlakeNewCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, buildResult.ExitCode);
         Assert.Contains(buildResult.OutputText, o => o.Contains("Build succeeded"));
+    }
+
+    private void EnsureDebugRegistryExists()
+    {
+        var templateRegistryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".blake", "TemplateRegistry.json");
+        if (!File.Exists(templateRegistryPath))
+        {
+            // Create a mock TemplateRegistry.json for testing
+            var templates = new List<SiteTemplate>
+            {
+                new (Guid.Empty, shortName1, longName1, "", "", "", DateTime.MinValue, ""),
+                new (Guid.Empty, shortName2, longName2, "", "", "", DateTime.MinValue, "")
+            };
+
+            var registry = new TemplateRegistry(templates);
+
+            var jsonContent = System.Text.Json.JsonSerializer.Serialize(registry, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            Directory.CreateDirectory(Path.GetDirectoryName(templateRegistryPath)!);
+            File.WriteAllText(templateRegistryPath, jsonContent);
+        }
+    }
+
+    private void DeleteDebugRegistry()
+    {
+        var templateRegistryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".blake", "TemplateRegistry.json");
+        if (File.Exists(templateRegistryPath))
+        {
+            File.Delete(templateRegistryPath);
+        }
     }
 }
