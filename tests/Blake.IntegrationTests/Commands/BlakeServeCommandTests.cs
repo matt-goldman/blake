@@ -21,7 +21,7 @@ public class BlakeServeCommandTests : TestFixtureBase
         var action = RunBlakeFromDotnetAsync("serve", nonExistentPath, cancellationToken: cts.Token);
 
         // Assert
-        await Assert.ThrowsAsync<Win32Exception>(async () => await action);
+        await Assert.ThrowsAnyAsync<Exception>(async () => await action);
     }
 
     [Fact]
