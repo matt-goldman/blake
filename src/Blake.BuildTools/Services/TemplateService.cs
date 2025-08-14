@@ -216,16 +216,19 @@ public class TemplateService : ITemplateService
 
     private static void SetDirectoryWritable(string directoryPath)
     {
-        var directoryInfo = new DirectoryInfo(directoryPath);
-        
+        SetDirectoryWritableRecursive(new DirectoryInfo(directoryPath));
+    }
+
+    private static void SetDirectoryWritableRecursive(DirectoryInfo directoryInfo)
+    {
         // Remove read-only attribute from the directory itself
         if (directoryInfo.Attributes.HasFlag(FileAttributes.ReadOnly))
         {
             directoryInfo.Attributes &= ~FileAttributes.ReadOnly;
         }
 
-        // Recursively process all files
-        foreach (var file in directoryInfo.GetFiles("*", SearchOption.AllDirectories))
+        // Process all files in the current directory
+        foreach (var file in directoryInfo.GetFiles())
         {
             if (file.Attributes.HasFlag(FileAttributes.ReadOnly))
             {
@@ -234,12 +237,9 @@ public class TemplateService : ITemplateService
         }
 
         // Recursively process all subdirectories
-        foreach (var subDirectory in directoryInfo.GetDirectories("*", SearchOption.AllDirectories))
+        foreach (var subDirectory in directoryInfo.GetDirectories())
         {
-            if (subDirectory.Attributes.HasFlag(FileAttributes.ReadOnly))
-            {
-                subDirectory.Attributes &= ~FileAttributes.ReadOnly;
-            }
+            SetDirectoryWritableRecursive(subDirectory);
         }
     }
 }
