@@ -31,7 +31,7 @@ public class BlakePluginTests : TestFixtureBase
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Build completed successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Build completed successfully"));
     }
 
     [Fact]
@@ -134,10 +134,12 @@ public class BlakePluginTests : TestFixtureBase
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        
+
         // Multiple plugin instances should run (TestPlugin and ContentModifyingPlugin from same assembly)
-        Assert.Contains("TestPlugin: BeforeBakeAsync called", result.OutputText);
-        Assert.Contains("ContentModifyingPlugin: Adding test metadata", result.OutputText);
+        Assert.Contains(result.OutputText, o =>
+            o.Contains("TestPlugin: BeforeBakeAsync called"));
+        Assert.Contains(result.OutputText, o =>
+            o.Contains("ContentModifyingPlugin: Adding test metadata"));
     }
 
     [Fact]
@@ -171,10 +173,11 @@ public class BlakePluginTests : TestFixtureBase
         // Should either handle the error gracefully or continue without the plugin
         if (result.ExitCode != 0)
         {
-            Assert.True(
-                result.ErrorText.Contains("plugin") ||
-                result.ErrorText.Contains("project") ||
-                result.ErrorText.Contains("reference")
+            Assert.Contains(
+                result.ErrorText, o => 
+                    o.Contains("plugin") ||
+                    o.Contains("project") ||
+                    o.Contains("reference")
             );
         }
     }
@@ -231,10 +234,12 @@ public class BlakePluginTests : TestFixtureBase
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        
+
         // Plugin should have logged correct counts
-        Assert.Contains("BeforeBakeAsync called with 2 markdown pages", result.OutputText);
-        Assert.Contains("AfterBakeAsync called with 2 generated pages", result.OutputText);
+        Assert.Contains(result.OutputText, o =>
+            o.Contains("BeforeBakeAsync called with 2 markdown pages"));
+        Assert.Contains(result.OutputText, o =>
+            o.Contains("AfterBakeAsync called with 2 generated pages"));
     }
 
     [Fact]
@@ -282,7 +287,7 @@ public class BlakePluginTests : TestFixtureBase
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("ContentModifyingPlugin: Adding test metadata", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("ContentModifyingPlugin: Adding test metadata"));
     }
 
     [Fact]
@@ -332,9 +337,9 @@ public class BlakePluginTests : TestFixtureBase
         Assert.Equal(0, result.ExitCode);
         
         // Plugin log messages should appear in output
-        Assert.Contains("TestPlugin: BeforeBakeAsync called", result.OutputText);
-        Assert.Contains("TestPlugin: AfterBakeAsync called", result.OutputText);
-        Assert.Contains("ContentModifyingPlugin:", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("TestPlugin: BeforeBakeAsync called"));
+        Assert.Contains(result.OutputText, o => o.Contains("TestPlugin: AfterBakeAsync called"));
+        Assert.Contains(result.OutputText, o => o.Contains("ContentModifyingPlugin:"));
     }
 
     [Fact]
@@ -402,7 +407,7 @@ public class BlakePluginTests : TestFixtureBase
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Build completed successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Build completed successfully"));
         
         // Should not show plugin-related errors when no project file exists
         Assert.DoesNotContain("plugin", result.ErrorText);
@@ -468,8 +473,8 @@ public class BlakePluginTests : TestFixtureBase
         Assert.Contains("Plugin dependencies working in AfterBakeAsync", afterContent);
         
         // Should show plugin logs
-        Assert.Contains("TestPluginWithDependencies: BeforeBakeAsync called", result.OutputText);
-        Assert.Contains("TestPluginWithDependencies: AfterBakeAsync called", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("TestPluginWithDependencies: BeforeBakeAsync called"));
+        Assert.Contains(result.OutputText, o => o.Contains("TestPluginWithDependencies: AfterBakeAsync called"));
     }
 
     private static string GetCurrentDirectory()
