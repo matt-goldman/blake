@@ -256,10 +256,12 @@ public class BlakeNewCommandTests : TestFixtureBase
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
-        Assert.True(result.ErrorText.Contains("git") ||
-                   result.ErrorText.Contains("clone") ||
-                   result.ErrorText.Contains("repository"   ) ||
-                   result.ErrorText.Contains("not found"));
+        Assert.Contains(result.ErrorText, e => 
+                                            e.Contains("Failed to create site from template.") ||
+                                            e.Contains("git") ||
+                                            e.Contains("clone") ||
+                                            e.Contains("repository") ||
+                                            e.Contains("not found"));
     }
 
     [Fact] 

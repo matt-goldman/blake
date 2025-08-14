@@ -92,7 +92,7 @@ public class TemplateService : ITemplateService
         // Start the git clone process
         logger?.LogInformation("Cloning template from {repoUrl}...", repoUrl);
         
-        var cloneResult = process.Start();
+        process.Start();
 
         await process.WaitForExitAsync();
         
