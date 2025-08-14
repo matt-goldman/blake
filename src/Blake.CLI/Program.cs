@@ -6,9 +6,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Blake.CLI;
 
-class Program
+public class Program
 {
-    static async Task<int> Main(string[] args)
+    public static async Task<int> Main(string[] args)
+    {
+        using var loggerFactory = CreateLoggerFactory(args);
+        var logger = loggerFactory.CreateLogger("Blake");
+
+        return await RunAsync(args, logger);
+    }
+
+    internal static async Task<int> RunAsync(string[] args, ILogger logger)
     {
         if (args.Length == 0)
         {
@@ -18,25 +26,43 @@ class Program
         }
 
         var option = args[0].ToLowerInvariant();
-        
+
         switch (option)
         {
             case "--help":
                 ShowHelp();
                 return 0;
             case "init":
-                return await InitBlakeAsync(args);
+                return await InitBlakeAsync(args, logger);
             case "bake":
-                return await BakeBlakeAsync(args);
+                return await BakeBlakeAsync(args, logger);
             case "serve":
-                return await ServeBakeAsync(args);
+                return await ServeBakeAsync(args, logger);
             case "new":
-                return await NewSiteAsync(args);
+                return await NewSiteAsync(args, logger);
             default:
-                await Console.Error.WriteLineAsync($"Unknown option: {option}");
-        
+                logger.LogError("Unknown option: {option}", option);
                 return 1;
         }
+    }
+
+    private static ILoggerFactory CreateLoggerFactory(string[] args)
+    {
+        var level = ParseLevel(args);
+        return LoggerFactory.Create(c =>
+        {
+            c.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.None); // force stdout
+            c.SetMinimumLevel(level);
+        });
+    }
+
+    private static LogLevel ParseLevel(string[] args)
+    {
+        var level = LogLevel.Warning;
+        var i = Array.FindIndex(args, a => a is "--verbosity" or "-v");
+        if (i >= 0 && i + 1 < args.Length)
+            _ = Enum.TryParse(args[i + 1], ignoreCase: true, out level);
+        return level;
     }
 
     private static void ShowHelp()
@@ -71,21 +97,19 @@ class Program
         Console.WriteLine("  --help               Show this help message.");
     }
     
-    private static async Task<int> InitBlakeAsync(string[] args)
+    private static async Task<int> InitBlakeAsync(string[] args, ILogger logger)
     {
         // get target path or use current directory
         var targetPath = GetPathFromArgs(args);
 
         var projectFile = string.Empty;
-
-        var logger = GetLogger(args);
         
         // Check if the path is a .csproj file
         if (Path.GetExtension(targetPath).Equals(".csproj", StringComparison.OrdinalIgnoreCase))
         {
             if (!File.Exists(targetPath))
             {
-                logger?.LogError("Project file '{targetPath}' does not exist.", targetPath);
+                logger.LogError("Project file '{targetPath}' does not exist.", targetPath);
                 return 1;
             }
             projectFile = targetPath;
@@ -97,7 +121,7 @@ class Program
             var csprojFiles = Directory.GetFiles(targetPath, "*.csproj");
             if (csprojFiles.Length == 0)
             {
-                logger?.LogError("No .csproj file found in the specified path.");
+                logger.LogError("No .csproj file found in the specified path.");
                 return 1;
             }
             projectFile = csprojFiles[0];
@@ -105,7 +129,7 @@ class Program
         
         if (!Directory.Exists(targetPath))
         {
-            logger?.LogError("Path '{targetPath}' does not exist.", targetPath);
+            logger.LogError("Path '{targetPath}' does not exist.", targetPath);
             return 1;
         }
         
@@ -122,16 +146,15 @@ class Program
 
         await SiteGenerator.InitAsync(projectFile, includeSampleContent, logger);
 
-        logger?.LogInformation("✅ Blake initialized successfully in {targetPath}", targetPath);
+        logger.LogInformation("✅ Blake initialized successfully in {targetPath}", targetPath);
 
         Console.WriteLine("Completed init, running Bake...");
 
-        return await BakeBlakeAsync(args);
+        return await BakeBlakeAsync(args, logger);
     }
 
-    private static async Task<int> BakeBlakeAsync(string[] args, ILogger? logger = null)
+    private static async Task<int> BakeBlakeAsync(string[] args, ILogger logger)
     {
-        logger ??= GetLogger(args);
         string targetPath;
 
         try
@@ -185,17 +208,18 @@ class Program
             logger.LogError(ex, "Baking site failed");
         }
 
+        logger.LogInformation("✅ Build completed successfully for: {targetPath}", targetPath);
         Console.WriteLine("✅ Build completed successfully.");
         
         return 0;
     }
 
-    private static async Task<int> ServeBakeAsync(string[] args)
+    private static async Task<int> ServeBakeAsync(string[] args, ILogger logger)
     {
         var path = args.Length > 1 ? args[1].Trim('"') : Directory.GetCurrentDirectory();
 
         Console.WriteLine($"🔧 Baking in: {path}");
-        var bakeResult = await BakeBlakeAsync(args);
+        var bakeResult = await BakeBlakeAsync(args, logger);
         if (bakeResult != 0) return bakeResult;
 
         Console.WriteLine("🚀 Running app...");
@@ -216,7 +240,7 @@ class Program
         return 0;
     }
 
-    private static async Task<int> NewSiteAsync(string[] args)
+    private static async Task<int> NewSiteAsync(string[] args, ILogger logger)
     {
         Console.WriteLine();
 
@@ -253,8 +277,6 @@ class Program
         var directory = GetPathFromArgs(args);
 
         var result = 0;
-        
-        var logger = GetLogger(args);
 
         logger.LogInformation("🛠  Creating new site in: {directory}", directory);
 
@@ -377,46 +399,5 @@ class Program
         }
 
         return Directory.GetCurrentDirectory();
-    }
-
-    private static ILogger GetLogger(string[] args)
-    {
-        var level = LogLevel.Warning;
-        
-        if (args.Contains("--verbosity") || args.Contains("-v"))
-        {
-            var argList = args.ToList();
-            var verbosityIndex = argList.FindIndex(arg => arg is "--verbosity" or "-v");
-            
-            if (verbosityIndex >= 0)
-            {
-                if (verbosityIndex + 1 < argList.Count)
-                {
-                    var levelString = argList[verbosityIndex + 1];
-                    
-                    if (!Enum.TryParse<LogLevel>(levelString, out var parsedLevel))
-                    {
-                        Console.WriteLine($"⚠️ Invalid verbosity level: {levelString}. Using default level: Warning.");
-                        parsedLevel = LogLevel.Warning;
-                    }
-                    
-                    level = parsedLevel;
-                }
-                else
-                {
-                    Console.WriteLine("⚠️ Missing verbosity level after --verbosity or -v. Using default level: Warning.");
-                    level = LogLevel.Warning;
-                }
-            }
-        }
-        
-        // Add a default logger
-        var logger = LoggerFactory.Create(c =>
-        {
-            c.AddConsole();
-            c.SetMinimumLevel(level);
-        });
-        
-        return logger.CreateLogger("Blake");
     }
 }

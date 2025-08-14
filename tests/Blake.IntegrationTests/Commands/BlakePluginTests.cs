@@ -27,7 +27,7 @@ public class BlakePluginTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -78,7 +78,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -130,7 +130,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -165,16 +165,16 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         // Should either handle the error gracefully or continue without the plugin
         if (result.ExitCode != 0)
         {
             Assert.True(
-                result.ErrorText.Contains("plugin", StringComparison.OrdinalIgnoreCase) ||
-                result.ErrorText.Contains("project", StringComparison.OrdinalIgnoreCase) ||
-                result.ErrorText.Contains("reference", StringComparison.OrdinalIgnoreCase)
+                result.ErrorText.Contains("plugin") ||
+                result.ErrorText.Contains("project") ||
+                result.ErrorText.Contains("reference")
             );
         }
     }
@@ -227,7 +227,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -278,7 +278,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -326,7 +326,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act - Run with verbose logging to see plugin logs
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --verbosity Debug");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--verbosity", "Debug"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -366,15 +366,15 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --verbosity Debug");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--verbosity", "Debug"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
         
         // Should discover and load plugins
         Assert.True(
-            result.OutputText.Contains("plugin", StringComparison.OrdinalIgnoreCase) ||
-            result.OutputText.Contains("TestPlugin:", StringComparison.OrdinalIgnoreCase)
+            result.OutputText.Contains("plugin") ||
+            result.OutputText.Contains("TestPlugin:")
         );
     }
 
@@ -398,14 +398,14 @@ public class BlakePluginTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Build completed successfully", result.OutputText);
         
         // Should not show plugin-related errors when no project file exists
-        Assert.DoesNotContain("plugin", result.ErrorText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("plugin", result.ErrorText);
     }
 
     [Fact]
@@ -451,7 +451,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --verbosity Debug");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--verbosity", "Debug"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);

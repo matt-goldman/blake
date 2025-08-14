@@ -16,7 +16,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-init-no-csproj");
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
@@ -31,7 +31,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         var nonExistentPath = Path.Combine(Path.GetTempPath(), "non-existent-" + Guid.NewGuid());
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{nonExistentPath}\"");
+        var result = await RunBlakeCommandAsync(["bake", nonExistentPath]);
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
@@ -50,7 +50,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         var csprojPath = Path.Combine(testDir, $"{projectName}.csproj");
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{csprojPath}\"");
+        var result = await RunBlakeCommandAsync(["bake", csprojPath]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -71,7 +71,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["init", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -98,7 +98,7 @@ public class BlakeInitCommandTests : TestFixtureBase
             "<Project Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\"><PropertyGroup><TargetFramework>net9.0</TargetFramework></PropertyGroup></Project>");
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["init", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -119,7 +119,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\" --includeSampleContent");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--includeSampleContent"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -146,7 +146,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\" -s");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "-s"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -165,7 +165,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["init", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -185,7 +185,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\" --includeSampleContent");
+        var result = await RunBlakeCommandAsync(["init", testDir, "--includeSampleContent"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -209,7 +209,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["init", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -241,7 +241,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         var originalContent = File.ReadAllText(existingPagePath);
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\" --includeSampleContent");
+        var result = await RunBlakeCommandAsync(["init", testDir, "--includeSampleContent"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -266,7 +266,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         var originalProgramCs = File.ReadAllText(Path.Combine(testDir, "Program.cs"));
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["init", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -291,7 +291,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Act - Initialize Blake
-        var initResult = await RunBlakeCommandAsync($"init \"{testDir}\" --includeSampleContent");
+        var initResult = await RunBlakeCommandAsync(["init", testDir, "--includeSampleContent"]);
         Assert.Equal(0, initResult.ExitCode);
 
         // Act - Try to build the project
@@ -304,7 +304,7 @@ public class BlakeInitCommandTests : TestFixtureBase
             Console.WriteLine($"Build failed: {buildResult.OutputText}\n{buildResult.ErrorText}");
         }
         Assert.Equal(0, buildResult.ExitCode);
-        Assert.Contains("Build succeeded", buildResult.OutputText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Build succeeded", buildResult.OutputText);
     }
 
     [Fact]
@@ -327,7 +327,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         File.WriteAllText(Path.Combine(testDir, "Program.cs"), "Console.WriteLine(\"Hello World\");");
 
         // Act
-        var result = await RunBlakeCommandAsync($"init \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["init", testDir]);
 
         // Assert - Blake should initialize successfully (it doesn't validate project types)
         Assert.Equal(0, result.ExitCode);

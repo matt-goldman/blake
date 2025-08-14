@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Blake.IntegrationTests.Infrastructure;
 
@@ -8,12 +8,20 @@ namespace Blake.IntegrationTests.Infrastructure;
 /// </summary>
 public abstract class TestFixtureBase : IDisposable
 {
-    protected readonly ILogger Logger;
     private readonly List<string> _tempDirectories = [];
+
+    private InMemoryLoggerProvider _loggerProvider = new();
+    protected readonly ILogger Logger;
 
     protected TestFixtureBase()
     {
-        Logger = CreateLogger();
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddProvider(_loggerProvider);
+            builder.SetMinimumLevel(LogLevel.Trace);
+        });
+
+        Logger = loggerFactory.CreateLogger("Test");
     }
 
     /// <summary>
@@ -29,9 +37,29 @@ public abstract class TestFixtureBase : IDisposable
     }
 
     /// <summary>
+    /// Runs a CLI command
+    /// </summary>
+    protected async Task<ProcessResult> RunBlakeCommandAsync(string[] args, CancellationToken cancellationToken = default)
+    {
+        var startTime = DateTime.UtcNow;
+
+        var exitCode = await Blake.CLI.Program.RunAsync(args, Logger);
+
+        var duration = DateTime.UtcNow - startTime;
+
+        var result = new ProcessResult(
+            exitCode,
+            [.. _loggerProvider.Logs.Select(l => l.Message)],
+            [.. _loggerProvider.Logs.Where(l => l.Level >= LogLevel.Error).Select(l => l.Message)],
+            duration);
+
+        return result;
+    }
+
+    /// <summary>
     /// Runs a CLI command using the blake executable.
     /// </summary>
-    protected async Task<ProcessResult> RunBlakeCommandAsync(string command, string workingDirectory = "", CancellationToken cancellationToken = default)
+    protected async Task<ProcessResult> RunBlakeFromDotnetAsync(string command, string workingDirectory = "", CancellationToken cancellationToken = default)
     {
         return await RunProcessAsync("dotnet", $"run --project \"{GetCliProjectPath()}\" -- {command}", workingDirectory, cancellationToken);
     }
@@ -103,13 +131,6 @@ public abstract class TestFixtureBase : IDisposable
         return Path.Combine(currentDir, "src", "Blake.CLI", "Blake.CLI.csproj");
     }
 
-    private static ILogger CreateLogger()
-    {
-        var loggerFactory = LoggerFactory.Create(builder =>
-            builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
-        return loggerFactory.CreateLogger("IntegrationTest");
-    }
-
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -122,7 +143,7 @@ public abstract class TestFixtureBase : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogWarning(ex, "Failed to clean up temp directory: {TempDir}", tempDir);
+                    Console.WriteLine($"Failed to delete temporary directory '{tempDir}': {ex.Message}");
                 }
             }
         }
@@ -145,7 +166,7 @@ public record ProcessResult(
     TimeSpan Duration
 )
 {
-    public string OutputText => string.Join(Environment.NewLine, Output);
-    public string ErrorText => string.Join(Environment.NewLine, Error);
+    public List<string> OutputText => [.. Output];
+    public List<string> ErrorText => [.. Error];
     public bool IsSuccess => ExitCode == 0;
 }

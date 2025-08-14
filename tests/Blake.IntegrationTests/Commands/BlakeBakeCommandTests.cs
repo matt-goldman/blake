@@ -16,11 +16,11 @@ public class BlakeBakeCommandTests : TestFixtureBase
         var nonExistentPath = Path.Combine(Path.GetTempPath(), "non-existent-" + Guid.NewGuid());
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{nonExistentPath}\"");
+        var result = await RunBlakeCommandAsync(["bake", nonExistentPath]);
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("does not exist", result.ErrorText);
+        Assert.Contains(result.ErrorText, o => o.Contains("does not exist"));
     }
 
     [Fact]
@@ -30,11 +30,11 @@ public class BlakeBakeCommandTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-bake-empty");
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Build completed successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Build completed successfully"));
         
         // Should create .generated folder
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -69,11 +69,11 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Build completed successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Build completed successfully"));
         
         // Should generate Razor files
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -120,7 +120,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -161,7 +161,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -194,7 +194,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --includeDrafts");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--includeDrafts"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -226,7 +226,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -253,13 +253,13 @@ public class BlakeBakeCommandTests : TestFixtureBase
         // No template.razor file created
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         // Should either show error or use a default template
         if (result.ExitCode != 0)
         {
-            Assert.Contains("template", result.ErrorText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("template", result.ErrorText);
         }
         else
         {
@@ -269,7 +269,6 @@ public class BlakeBakeCommandTests : TestFixtureBase
     }
 
     [Fact]
-    // TODO: Test fails. Could be that Blake is not traversing nested folders correctly.
     public async Task BlakeBake_WithNestedFolders_GeneratesCorrectStructure()
     {
         // Arrange
@@ -289,14 +288,14 @@ public class BlakeBakeCommandTests : TestFixtureBase
 
         // Template at root Posts level
         FileSystemHelper.CreateRazorTemplate(
-            Path.Combine(testDir, "Posts", "template.razor"),
+            Path.Combine(testDir, "Posts", "cascading-template.razor"),
             @"@page ""/posts/{Slug}""
 <h1>@Title</h1>
 <div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -339,7 +338,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --clean");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--clean"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -376,7 +375,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" -cl");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "-cl"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -394,7 +393,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         File.WriteAllText(Path.Combine(generatedDir, "existing-file.razor"), "existing content");
         
         // Act - Bake without clean flag
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -437,7 +436,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -482,7 +481,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
