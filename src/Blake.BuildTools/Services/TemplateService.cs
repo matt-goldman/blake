@@ -92,7 +92,7 @@ public class TemplateService : ITemplateService
         // Start the git clone process
         logger?.LogInformation("Cloning template from {repoUrl}...", repoUrl);
         
-        var cloneResult = process.Start();
+        process.Start();
 
         await process.WaitForExitAsync();
         
@@ -112,7 +112,7 @@ public class TemplateService : ITemplateService
             // Remove the .git directory to avoid confusion
             var gitDirectory = Path.Combine(newSiteDirectory, ".git");
             if (!Directory.Exists(gitDirectory)) return 0;
-            Directory.Delete(gitDirectory, true);
+            RemoveReadOnlyGitDirectory(gitDirectory, logger);
             var gitFiles = new[] { ".gitignore", ".gitattributes" };
             foreach (var gitFile in gitFiles)
             {
@@ -193,6 +193,53 @@ public class TemplateService : ITemplateService
                 File.Copy(backupFilePath, sourceFilePath, true);
                 logger?.LogDebug("Restored {gitFile} from backup to {sourceFilePath}", gitFile, sourceFilePath);
             }
+        }
+    }
+
+    private static void RemoveReadOnlyGitDirectory(string gitDirectory, ILogger? logger)
+    {
+        logger?.LogDebug("Removing read-only attributes from .git directory before deletion...");
+        
+        try
+        {
+            // Recursively remove read-only attributes from all files and directories
+            SetDirectoryWritable(gitDirectory);
+            Directory.Delete(gitDirectory, true);
+            logger?.LogDebug("Successfully removed .git directory after clearing read-only attributes.");
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning("Failed to delete .git directory: {Error}", ex.Message);
+            // Don't fail the entire operation if we can't clean up the .git directory
+        }
+    }
+
+    private static void SetDirectoryWritable(string directoryPath)
+    {
+        SetDirectoryWritableRecursive(new DirectoryInfo(directoryPath));
+    }
+
+    private static void SetDirectoryWritableRecursive(DirectoryInfo directoryInfo)
+    {
+        // Remove read-only attribute from the directory itself
+        if (directoryInfo.Attributes.HasFlag(FileAttributes.ReadOnly))
+        {
+            directoryInfo.Attributes &= ~FileAttributes.ReadOnly;
+        }
+
+        // Process all files in the current directory
+        foreach (var file in directoryInfo.GetFiles())
+        {
+            if (file.Attributes.HasFlag(FileAttributes.ReadOnly))
+            {
+                file.Attributes &= ~FileAttributes.ReadOnly;
+            }
+        }
+
+        // Recursively process all subdirectories
+        foreach (var subDirectory in directoryInfo.GetDirectories())
+        {
+            SetDirectoryWritableRecursive(subDirectory);
         }
     }
 }

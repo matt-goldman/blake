@@ -6,10 +6,20 @@ using Microsoft.Extensions.Logging;
 
 namespace Blake.CLI;
 
-class Program
+public class Program : IDisposable
 {
-    static async Task<int> Main(string[] args)
+    private static CancellationTokenSource? _cancellationTokenSource;
+
+    public static async Task<int> Main(string[] args)
     {
+        return await RunAsync(args);
+    }
+
+    internal static async Task<int> RunAsync(string[] args, ILogger? logger = null)
+    {
+        // Create a logger factory with the specified log level
+        logger ??= CreateLoggerFactory(args).CreateLogger<Program>();
+
         if (args.Length == 0)
         {
             await Console.Error.WriteLineAsync("Required argument missing.");
@@ -18,25 +28,43 @@ class Program
         }
 
         var option = args[0].ToLowerInvariant();
-        
+
         switch (option)
         {
             case "--help":
                 ShowHelp();
                 return 0;
             case "init":
-                return await InitBlakeAsync(args);
+                return await InitBlakeAsync(args, logger);
             case "bake":
-                return await BakeBlakeAsync(args);
+                return await BakeBlakeAsync(args, logger);
             case "serve":
-                return await ServeBakeAsync(args);
+                return await ServeBakeAsync(args, logger);
             case "new":
-                return await NewSiteAsync(args);
+                return await NewSiteAsync(args, logger);
             default:
-                await Console.Error.WriteLineAsync($"Unknown option: {option}");
-        
+                logger.LogError("Unknown option: {option}", option);
                 return 1;
         }
+    }
+
+    private static ILoggerFactory CreateLoggerFactory(string[] args)
+    {
+        var level = ParseLevel(args);
+        return LoggerFactory.Create(c =>
+        {
+            c.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.None); // force stdout
+            c.SetMinimumLevel(level);
+        });
+    }
+
+    private static LogLevel ParseLevel(string[] args)
+    {
+        var level = LogLevel.Warning;
+        var i = Array.FindIndex(args, a => a is "--verbosity" or "-v");
+        if (i >= 0 && i + 1 < args.Length)
+            _ = Enum.TryParse(args[i + 1], ignoreCase: true, out level);
+        return level;
     }
 
     private static void ShowHelp()
@@ -71,21 +99,19 @@ class Program
         Console.WriteLine("  --help               Show this help message.");
     }
     
-    private static async Task<int> InitBlakeAsync(string[] args)
+    private static async Task<int> InitBlakeAsync(string[] args, ILogger logger)
     {
         // get target path or use current directory
         var targetPath = GetPathFromArgs(args);
 
         var projectFile = string.Empty;
-
-        var logger = GetLogger(args);
         
         // Check if the path is a .csproj file
         if (Path.GetExtension(targetPath).Equals(".csproj", StringComparison.OrdinalIgnoreCase))
         {
             if (!File.Exists(targetPath))
             {
-                logger?.LogError("Project file '{targetPath}' does not exist.", targetPath);
+                logger.LogError("Project file '{targetPath}' does not exist.", targetPath);
                 return 1;
             }
             projectFile = targetPath;
@@ -97,7 +123,7 @@ class Program
             var csprojFiles = Directory.GetFiles(targetPath, "*.csproj");
             if (csprojFiles.Length == 0)
             {
-                logger?.LogError("No .csproj file found in the specified path.");
+                logger.LogError("No .csproj file found in the specified path.");
                 return 1;
             }
             projectFile = csprojFiles[0];
@@ -105,7 +131,7 @@ class Program
         
         if (!Directory.Exists(targetPath))
         {
-            logger?.LogError("Path '{targetPath}' does not exist.", targetPath);
+            logger.LogError("Path '{targetPath}' does not exist.", targetPath);
             return 1;
         }
         
@@ -120,15 +146,41 @@ class Program
 
         var includeSampleContent = args.Contains("--includeSampleContent") || args.Contains("-s");
 
-        return await SiteGenerator.InitAsync(projectFile, includeSampleContent, logger);
+        await SiteGenerator.InitAsync(projectFile, includeSampleContent, logger);
+
+        logger.LogInformation("✅ Blake initialized successfully in {targetPath}", targetPath);
+
+        Console.WriteLine("Completed init, running Bake...");
+
+        return await BakeBlakeAsync(args, logger);
     }
 
-    private static async Task<int> BakeBlakeAsync(string[] args)
+    private static async Task<int> BakeBlakeAsync(string[] args, ILogger logger)
     {
-        // get target path or use current directory
-        var targetPath = GetPathFromArgs(args);
+        string targetPath;
 
-        var logger = GetLogger(args);
+        try
+        {
+            // get target path or use current directory
+            targetPath = GetPathFromArgs(args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("❌ Failed to parse target path from arguments. Please provide a valid path.");
+            logger.LogError(ex, "Failed to parse target path from arguments.");
+            return 1;
+        }
+
+        // Build context expects a directory, not a .csproj file
+        if (Path.GetExtension(targetPath).Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!File.Exists(targetPath))
+            {
+                logger.LogError("Project file '{targetPath}' does not exist.", targetPath);
+                return 1;
+            }
+            targetPath = Path.GetDirectoryName(targetPath) ?? Directory.GetCurrentDirectory();
+        }
 
         if (!Directory.Exists(targetPath))
         {
@@ -148,19 +200,28 @@ class Program
             Arguments           = [.. args.Skip(1)]
         };
 
-        await SiteGenerator.BuildAsync(options, logger);
+        try
+        {
+            await SiteGenerator.BuildAsync(options, logger);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("❌ An error occurred while baking the site. Please check the logs for details.");
+            logger.LogError(ex, "Baking site failed");
+        }
 
+        logger.LogInformation("✅ Build completed successfully for: {targetPath}", targetPath);
         Console.WriteLine("✅ Build completed successfully.");
         
         return 0;
     }
 
-    private static async Task<int> ServeBakeAsync(string[] args)
+    private static async Task<int> ServeBakeAsync(string[] args, ILogger logger)
     {
         var path = args.Length > 1 ? args[1].Trim('"') : Directory.GetCurrentDirectory();
 
         Console.WriteLine($"🔧 Baking in: {path}");
-        var bakeResult = await BakeBlakeAsync(args);
+        var bakeResult = await BakeBlakeAsync(args, logger);
         if (bakeResult != 0) return bakeResult;
 
         Console.WriteLine("🚀 Running app...");
@@ -171,17 +232,45 @@ class Program
             UseShellExecute = true
         };
 
-        var process = Process.Start(psi);
+        using var process = Process.Start(psi);
+
         if (process == null)
         {
-            Console.WriteLine("❌ Failed to start the process. Please check the configuration and try again.");
+            logger.LogError("Failed to start the process. Please check the configuration and try again.");
             return 1;
         }
-        await process.WaitForExitAsync();
+
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        var waitTask = process.WaitForExitAsync();
+        var cancelTask = Task.Delay(Timeout.InfiniteTimeSpan, _cancellationTokenSource.Token);
+
+        var completed = await Task.WhenAny(waitTask, cancelTask);
+        if (completed != waitTask)
+        {
+            TryGraceful(process);
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+
+            // Catch if the process was killed or exited unexpectedly
+            try { await waitTask; } catch { /* ignore */ }
+        }
+
         return 0;
     }
 
-    private static async Task<int> NewSiteAsync(string[] args)
+    static void TryGraceful(Process proc)
+    {
+        // Optional gentle close on Windows if there is a windowed host
+        if (OperatingSystem.IsWindows())
+        {
+            try { if (proc.CloseMainWindow()) return; } catch { /* ignore */ }
+        }
+        // On Unix you could send SIGTERM if you manage process groups.
+    }
+
+
+    private static async Task<int> NewSiteAsync(string[] args, ILogger logger)
     {
         Console.WriteLine();
 
@@ -196,17 +285,21 @@ class Program
             // TODO: Improve this with Specter.Console or similar
             if (templateList.Count > 0)
             {
+                logger.LogInformation("Available templates: {count}", templateList.Count);
                 Console.WriteLine("Available templates:");
                 Console.WriteLine("Template Name             | Short name       | Description               | Main Category       | Author");
                 Console.WriteLine("--------------------------|------------------|---------------------------|---------------------|-----------------");
                 foreach (var template in templateList)
                 {
                     Console.WriteLine($"{template.Name,-26} | {template.ShortName,-16} | {template.Description,-25} | {template.MainCategory,-19} | {template.Author}");
+                    logger.LogInformation("Template: {name} ({shortName}) - {description} | Category: {category} | Author: {author}", 
+                        template.Name, template.ShortName, template.Description, template.MainCategory, template.Author);
                 }
             }
             else
             {
                 Console.WriteLine("No templates found.");
+                logger.LogDebug("No templates found.");
             }
             
             return 0;
@@ -218,8 +311,6 @@ class Program
         var directory = GetPathFromArgs(args);
 
         var result = 0;
-        
-        var logger = GetLogger(args);
 
         logger.LogInformation("🛠  Creating new site in: {directory}", directory);
 
@@ -275,9 +366,12 @@ class Program
             {
                 // don't use a template, just create a new Blazor site and initialise
                 logger.LogInformation("No template specified, creating a new Blazor WASM site using the default template.");
+
+                var nameFlag = string.IsNullOrWhiteSpace(newSiteName)? string.Empty : $" --name \"{newSiteName}\"";
+
                 var process = new Process
                 {
-                    StartInfo = new ProcessStartInfo("dotnet", $"new blazorwasm -o \"{directory}\"")
+                    StartInfo = new ProcessStartInfo("dotnet", $"new blazorwasm -o \"{directory}\"{nameFlag}")
                     {
                         RedirectStandardOutput  = true,
                         RedirectStandardError   = true,
@@ -298,12 +392,13 @@ class Program
                     if (initResult == 0)
                     {
                         logger.LogInformation("✅ New site {newSiteName} created successfully.", newSiteName);
+                        return await BakeBlakeAsync([string.Empty, fileName], logger); // ensure path is second argument
                     }
                     else
                     {
-                        logger.LogError("Failed to create new Blake site");
+                        logger.LogError("Failed to create new Blazor WASM site. Error: {error}", process.StandardError.ReadToEnd());
                     }
-                    
+
                     return initResult;
                 }
             }
@@ -320,13 +415,14 @@ class Program
         if (newResult != 0)
         {
             logger.LogError("Failed to create new Blake site");
+            return newResult;
         }
         else
         {
             logger.LogInformation("✅ New site {newSiteName} created successfully.", newSiteName);
         }
-        
-        return newResult;
+
+        return await BakeBlakeAsync(args, logger);
     }
 
     private static string GetPathFromArgs(string[] args)
@@ -344,44 +440,10 @@ class Program
         return Directory.GetCurrentDirectory();
     }
 
-    private static ILogger GetLogger(string[] args)
+    public void Dispose()
     {
-        var level = LogLevel.Warning;
-        
-        if (args.Contains("--verbosity") || args.Contains("-v"))
-        {
-            var argList = args.ToList();
-            var verbosityIndex = argList.FindIndex(arg => arg is "--verbosity" or "-v");
-            
-            if (verbosityIndex >= 0)
-            {
-                if (verbosityIndex + 1 < argList.Count)
-                {
-                    var levelString = argList[verbosityIndex + 1];
-                    
-                    if (!Enum.TryParse<LogLevel>(levelString, out var parsedLevel))
-                    {
-                        Console.WriteLine($"⚠️ Invalid verbosity level: {levelString}. Using default level: Warning.");
-                        parsedLevel = LogLevel.Warning;
-                    }
-                    
-                    level = parsedLevel;
-                }
-                else
-                {
-                    Console.WriteLine("⚠️ Missing verbosity level after --verbosity or -v. Using default level: Warning.");
-                    level = LogLevel.Warning;
-                }
-            }
-        }
-        
-        // Add a default logger
-        var logger = LoggerFactory.Create(c =>
-        {
-            c.AddConsole();
-            c.SetMinimumLevel(level);
-        });
-        
-        return logger.CreateLogger("Blake");
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

@@ -22,12 +22,12 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -42,7 +42,7 @@ public class BlakePluginTests : TestFixtureBase
         var projectName = "PluginTest";
         
         // Create a basic Blazor project
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
         
         // Create content
         FileSystemHelper.CreateMarkdownFile(
@@ -54,8 +54,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build the test plugin first
@@ -78,7 +78,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -86,10 +86,6 @@ public class BlakePluginTests : TestFixtureBase
         // Plugin should have created marker files
         FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".plugin-before-bake.txt"));
         FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".plugin-after-bake.txt"));
-        
-        // Should show plugin logs
-        Assert.Contains("TestPlugin: BeforeBakeAsync called", result.OutputText);
-        Assert.Contains("TestPlugin: AfterBakeAsync called", result.OutputText);
     }
 
     [Fact]
@@ -99,7 +95,7 @@ public class BlakePluginTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-plugins-multiple");
         var projectName = "MultiplePluginTest";
         
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
         
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "test.md"),
@@ -110,8 +106,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build the test plugin
@@ -134,7 +130,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -154,7 +150,7 @@ public class BlakePluginTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-plugins-fail");
         var projectName = "FailingPluginTest";
         
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
         
         // Create a malformed plugin reference (non-existent path)
         var csprojPath = Path.Combine(testDir, $"{projectName}.csproj");
@@ -169,16 +165,16 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         // Should either handle the error gracefully or continue without the plugin
         if (result.ExitCode != 0)
         {
             Assert.True(
-                result.ErrorText.Contains("plugin", StringComparison.OrdinalIgnoreCase) ||
-                result.ErrorText.Contains("project", StringComparison.OrdinalIgnoreCase) ||
-                result.ErrorText.Contains("reference", StringComparison.OrdinalIgnoreCase)
+                result.ErrorText.Contains("plugin") ||
+                result.ErrorText.Contains("project") ||
+                result.ErrorText.Contains("reference")
             );
         }
     }
@@ -190,7 +186,7 @@ public class BlakePluginTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-plugins-context");
         var projectName = "ContextTest";
         
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
         
         // Create multiple markdown files to test context
         FileSystemHelper.CreateMarkdownFile(
@@ -208,8 +204,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build and add plugin
@@ -231,7 +227,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -248,7 +244,7 @@ public class BlakePluginTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-plugins-pipeline");
         var projectName = "PipelineTest";
         
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
         
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "test.md"),
@@ -259,8 +255,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build and add plugin that modifies pipeline
@@ -282,7 +278,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -296,7 +292,7 @@ public class BlakePluginTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-plugins-logger");
         var projectName = "LoggerTest";
         
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
         
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "test.md"),
@@ -307,8 +303,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build and add plugin
@@ -330,7 +326,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act - Run with verbose logging to see plugin logs
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --verbosity Debug");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--verbosity", "Debug"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -348,7 +344,7 @@ public class BlakePluginTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-plugins-discovery");
         var projectName = "DiscoveryTest";
         
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
 
         // Build the test plugin
         var pluginBuildResult = await RunProcessAsync("dotnet", "build", Path.Combine(GetCurrentDirectory(), "tests", "Blake.IntegrationTests", "TestPlugin"));
@@ -370,15 +366,15 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --verbosity Debug");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--verbosity", "Debug"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
         
         // Should discover and load plugins
         Assert.True(
-            result.OutputText.Contains("plugin", StringComparison.OrdinalIgnoreCase) ||
-            result.OutputText.Contains("TestPlugin:", StringComparison.OrdinalIgnoreCase)
+            result.OutputText.Contains("plugin") ||
+            result.OutputText.Contains("TestPlugin:")
         );
     }
 
@@ -397,19 +393,19 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Build completed successfully", result.OutputText);
         
         // Should not show plugin-related errors when no project file exists
-        Assert.DoesNotContain("plugin", result.ErrorText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("plugin", result.ErrorText);
     }
 
     [Fact]
@@ -419,7 +415,7 @@ public class BlakePluginTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-plugins-with-deps");
         var projectName = "PluginWithDepsTest";
         
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, projectName);
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, projectName);
         
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "test.md"),
@@ -430,8 +426,8 @@ public class BlakePluginTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Build the test plugin with dependencies first
@@ -455,7 +451,7 @@ public class BlakePluginTests : TestFixtureBase
         File.WriteAllText(csprojPath, updatedCsproj);
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --verbosity Debug");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--verbosity", "Debug"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);

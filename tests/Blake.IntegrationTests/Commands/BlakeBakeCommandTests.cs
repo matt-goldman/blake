@@ -9,17 +9,18 @@ namespace Blake.IntegrationTests.Commands;
 public class BlakeBakeCommandTests : TestFixtureBase
 {
     [Fact]
+    // TODO: Test fails. Process returns exit code 1, but no error message is shown. Additionally a breakpoint is not hit during test, so exit code could have come from dotnet.
     public async Task BlakeBake_WithNonExistentPath_ShowsError()
     {
         // Arrange
         var nonExistentPath = Path.Combine(Path.GetTempPath(), "non-existent-" + Guid.NewGuid());
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{nonExistentPath}\"");
+        var result = await RunBlakeCommandAsync(["bake", nonExistentPath]);
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("does not exist", result.ErrorText);
+        Assert.Contains(result.ErrorText, o => o.Contains("does not exist"));
     }
 
     [Fact]
@@ -29,11 +30,11 @@ public class BlakeBakeCommandTests : TestFixtureBase
         var testDir = CreateTempDirectory("blake-bake-empty");
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Build completed successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Build completed successfully"));
         
         // Should create .generated folder
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -63,16 +64,16 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Build completed successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Build completed successfully"));
         
         // Should generate Razor files
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -96,39 +97,38 @@ public class BlakeBakeCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-bake-frontmatter");
         
+        const string title = "Frontmatter Post";
+        const string description = "This post has frontmatter metadata.";
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "post-with-metadata.md"),
             "Post with Metadata",
             "Content goes here.",
             new Dictionary<string, object>
             {
-                ["author"] = "John Doe",
-                ["tags"] = new[] { "tech", "tutorial" },
-                ["date"] = "2024-01-15",
-                ["description"] = "A post with rich metadata"
+                ["title"] = title,
+                ["description"] = description
             }
         );
 
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<p>By @Model.Metadata[""author""] on @Model.Date?.ToString(""yyyy-MM-dd"")</p>
-<p>Tags: @string.Join("", "", Model.Tags)</p>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<p>Published on @Published</p>
+<p>@Description</p>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
         
         var generatedFile = Path.Combine(testDir, ".generated", "posts", "PostWithMetadata.razor");
         FileSystemHelper.AssertFileExists(generatedFile);
-        FileSystemHelper.AssertFileContains(generatedFile, "John Doe");
-        FileSystemHelper.AssertFileContains(generatedFile, "2024-01-15");
-        FileSystemHelper.AssertFileContains(generatedFile, "tech, tutorial");
+        FileSystemHelper.AssertFileContains(generatedFile, title);
+        FileSystemHelper.AssertFileContains(generatedFile, description);
     }
 
     [Fact]
@@ -156,12 +156,12 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -189,12 +189,12 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --includeDrafts");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--includeDrafts"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -220,18 +220,18 @@ public class BlakeBakeCommandTests : TestFixtureBase
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
 <article>
-<h1 class=""post-title"">@Model.Title</h1>
-<div class=""post-content"">@((MarkupString)Html)</div>
+<h1 class=""post-title"">@Title</h1>
+<div class=""post-content"">@Body</div>
 </article>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
         
-        var generatedFile = Path.Combine(testDir, ".generated", "posts", "TestPost.razor");
+        var generatedFile = Path.Combine(testDir, ".generated", "posts", "Post.razor");
         FileSystemHelper.AssertFileExists(generatedFile);
         FileSystemHelper.AssertFileContains(generatedFile, "post-title");
         FileSystemHelper.AssertFileContains(generatedFile, "post-content");
@@ -253,13 +253,13 @@ public class BlakeBakeCommandTests : TestFixtureBase
         // No template.razor file created
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         // Should either show error or use a default template
         if (result.ExitCode != 0)
         {
-            Assert.Contains("template", result.ErrorText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("template", result.ErrorText);
         }
         else
         {
@@ -288,14 +288,14 @@ public class BlakeBakeCommandTests : TestFixtureBase
 
         // Template at root Posts level
         FileSystemHelper.CreateRazorTemplate(
-            Path.Combine(testDir, "Posts", "template.razor"),
+            Path.Combine(testDir, "Posts", "cascading-template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -333,12 +333,12 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" --clean");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--clean"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -370,12 +370,12 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\" -cl");
+        var result = await RunBlakeCommandAsync(["bake", testDir, "-cl"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -393,7 +393,7 @@ public class BlakeBakeCommandTests : TestFixtureBase
         File.WriteAllText(Path.Combine(generatedDir, "existing-file.razor"), "existing content");
         
         // Act - Bake without clean flag
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -431,12 +431,12 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -476,12 +476,12 @@ public class BlakeBakeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act
-        var result = await RunBlakeCommandAsync($"bake \"{testDir}\"");
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);

@@ -13,6 +13,12 @@ internal class PluginLoadContext(string pluginPath) : AssemblyLoadContext(isColl
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
+        // Force Blake assemblies to be loaded in the default context to avoid interface compatibility issues
+        if (assemblyName.Name != null && assemblyName.Name.StartsWith("Blake."))
+        {
+            return null; // Use default load context for Blake assemblies
+        }
+        
         string? assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
         if (assemblyPath != null)
         {

@@ -20,7 +20,6 @@ internal static class SiteGenerator
         logger?.LogInformation("📂 Output path: {OptionsOutputPath}", options.OutputPath);
         logger?.LogInformation("🔎 Scanning content folders...");
 
-
         // iterate through all folders in the project path, find template.razor files
         if (!Directory.Exists(options.ProjectPath))
         {
@@ -248,7 +247,7 @@ internal static class SiteGenerator
                 .SetupContainerRenderers(options.UseDefaultRenderers, useRazorContainers: true)
         };
 
-        var folders = Directory.GetDirectories(options.ProjectPath)
+        var folders = Directory.GetDirectories(options.ProjectPath, "*", SearchOption.AllDirectories)
             .Select(Path.GetFileName)
             .Where(folder =>
                 folder != null &&

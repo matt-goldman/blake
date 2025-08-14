@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Blake.IntegrationTests.Infrastructure;
 
 /// <summary>
@@ -6,86 +8,31 @@ namespace Blake.IntegrationTests.Infrastructure;
 public static class FileSystemHelper
 {
     /// <summary>
-    /// Creates a simple Blazor WASM project structure for testing.
+    /// Creates a Blazor WASM project using the dotnet CLI template.
     /// </summary>
-    public static void CreateMinimalBlazorWasmProject(string projectPath, string projectName)
+    public static async Task CreateBlazorWasmProjectAsync(string projectPath, string projectName)
     {
         Directory.CreateDirectory(projectPath);
+        
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"new blazorwasm -o \"{projectPath}\" -n \"{projectName}\" --framework net9.0",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
 
-        // Create project file
-        var csprojContent = $@"<Project Sdk=""Microsoft.NET.Sdk.BlazorWebAssembly"">
+        using var process = new Process { StartInfo = startInfo };
+        process.Start();
+        await process.WaitForExitAsync();
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include=""Microsoft.AspNetCore.Components.WebAssembly"" Version=""8.0.0"" />
-    <PackageReference Include=""Microsoft.AspNetCore.Components.WebAssembly.DevServer"" Version=""8.0.0"" PrivateAssets=""all"" />
-  </ItemGroup>
-
-</Project>";
-
-        File.WriteAllText(Path.Combine(projectPath, $"{projectName}.csproj"), csprojContent);
-
-        // Create wwwroot folder
-        Directory.CreateDirectory(Path.Combine(projectPath, "wwwroot"));
-        File.WriteAllText(Path.Combine(projectPath, "wwwroot", "index.html"), @"<!DOCTYPE html>
-<html>
-<head>
-    <meta charset=""utf-8"" />
-    <title>Test Blazor App</title>
-</head>
-<body>
-    <div id=""app"">Loading...</div>
-    <script src=""_framework/blazor.webassembly.js""></script>
-</body>
-</html>");
-
-        // Create Program.cs
-        File.WriteAllText(Path.Combine(projectPath, "Program.cs"), @"using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-
-var builder = WebAssemblyHostBuilder.CreateDefault(args);
-builder.RootComponents.Add<App>(""#app"");
-builder.RootComponents.Add<HeadOutlet>(""head::after"");
-
-await builder.Build().RunAsync();");
-
-        // Create App.razor
-        File.WriteAllText(Path.Combine(projectPath, "App.razor"), @"<Router AppAssembly=""@typeof(App).Assembly"">
-    <Found Context=""routeData"">
-        <RouteView RouteData=""@routeData"" DefaultLayout=""@typeof(MainLayout)"" />
-    </Found>
-    <NotFound>
-        <PageTitle>Not found</PageTitle>
-        <LayoutView Layout=""@typeof(MainLayout)"">
-            <p role=""alert"">Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>");
-
-        // Create Shared folder and MainLayout
-        Directory.CreateDirectory(Path.Combine(projectPath, "Shared"));
-        File.WriteAllText(Path.Combine(projectPath, "Shared", "MainLayout.razor"), @"@inherits LayoutView
-
-<div class=""page"">
-    <div class=""main"">
-        <article class=""content px-4"">
-            @Body
-        </article>
-    </div>
-</div>");
-
-        // Create Pages folder
-        Directory.CreateDirectory(Path.Combine(projectPath, "Pages"));
-        File.WriteAllText(Path.Combine(projectPath, "Pages", "Index.razor"), @"@page ""/""
-
-<PageTitle>Home</PageTitle>
-
-<h1>Hello, world!</h1>");
+        if (process.ExitCode != 0)
+        {
+            var error = await process.StandardError.ReadToEndAsync();
+            throw new Exception($"Failed to create Blazor WASM project: {error}");
+        }
     }
 
     /// <summary>
@@ -125,6 +72,14 @@ await builder.Build().RunAsync();");
     public static void AssertDirectoryExists(string path, string? message = null)
     {
         Assert.True(Directory.Exists(path), message ?? $"Expected directory to exist: {path}");
+    }
+
+    /// <summary>
+    /// Asserts that a directory does not exist.
+    /// </summary>
+    public static void AssertDirectoryNotExists(string path, string? message = null)
+    {
+        Assert.False(Directory.Exists(path), message ?? $"Expected directory to not exist: {path}");
     }
 
     /// <summary>

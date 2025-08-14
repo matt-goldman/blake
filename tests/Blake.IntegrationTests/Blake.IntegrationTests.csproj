@@ -36,4 +36,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Exclude plugin files from compilation as they are separate projects -->
+    <Compile Remove="TestPluginWithDependencies\**" />
+    <EmbeddedResource Remove="TestPluginWithDependencies\**" />
+    <None Remove="TestPluginWithDependencies\**" />
+  </ItemGroup>
+
 </Project>

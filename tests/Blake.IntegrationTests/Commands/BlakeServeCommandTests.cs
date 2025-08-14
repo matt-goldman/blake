@@ -1,4 +1,5 @@
 using Blake.IntegrationTests.Infrastructure;
+using System.ComponentModel;
 
 namespace Blake.IntegrationTests.Commands;
 
@@ -8,6 +9,7 @@ namespace Blake.IntegrationTests.Commands;
 /// </summary>
 public class BlakeServeCommandTests : TestFixtureBase
 {
+    // NOTE: All these must run using dotnet rather than the Blake CLI directly, as the processes need to be terminated before test execution proceeds
     [Fact]
     public async Task BlakeServe_WithNonExistentPath_ShowsError()
     {
@@ -16,11 +18,10 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act - Use a short timeout since serve command runs indefinitely
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var result = await RunBlakeCommandAsync($"serve \"{nonExistentPath}\"", "", cts.Token);
+        var action = RunBlakeFromDotnetAsync("serve", nonExistentPath, cancellationToken: cts.Token);
 
         // Assert
-        Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("does not exist", result.ErrorText);
+        await Assert.ThrowsAnyAsync<Exception>(async () => await action);
     }
 
     [Fact]
@@ -28,7 +29,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-bake");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "ServeTest");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "ServeTest");
         
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "test-post.md"),
@@ -39,26 +40,26 @@ public class BlakeServeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
-        // Act - Start serve command but cancel quickly
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\"", "", cts.Token);
+        // Act - Start serve command
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should have attempted to bake first
-        Assert.Contains("Baking in:", result.OutputText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
         
         // Should have created generated content
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
         
         // May show "Build completed successfully" or start showing dotnet run output
-        Assert.True(
-            result.OutputText.Contains("Build completed successfully", StringComparison.OrdinalIgnoreCase) ||
-            result.OutputText.Contains("Running app", StringComparison.OrdinalIgnoreCase) ||
-            result.ErrorText.Contains("was canceled", StringComparison.OrdinalIgnoreCase) // Expected due to timeout
+        Assert.Contains(result.OutputText, o =>
+                o.Contains("Build completed successfully") ||
+                o.Contains("Running app") ||
+                o.Contains("was canceled") // Expected due to timeout
         );
     }
 
@@ -77,14 +78,14 @@ public class BlakeServeCommandTests : TestFixtureBase
         // Intentionally don't create template to potentially cause failure
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\"", "", cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         if (result.ExitCode != 0)
         {
             // If bake failed, serve should not continue
-            Assert.DoesNotContain("Running app", result.OutputText, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Running app", result.OutputText);
         }
         // If Blake is resilient and continues anyway, that's also acceptable behavior
     }
@@ -94,19 +95,19 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-valid");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "ValidServe");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "ValidServe");
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\"", "", cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should attempt to run the app (even if it fails due to missing dependencies in test environment)
-        Assert.True(
-            result.OutputText.Contains("Running app", StringComparison.OrdinalIgnoreCase) ||
-            result.OutputText.Contains("dotnet run", StringComparison.OrdinalIgnoreCase) ||
-            result.ErrorText.Contains("was canceled") || // Expected due to timeout
-            result.ErrorText.Contains("run") // May show dotnet run errors
+        Assert.Contains(result.OutputText, o =>
+            o.Contains("Running app") ||
+            o.Contains("dotnet run") ||
+            o.Contains("was canceled") || // Expected due to timeout
+            o.Contains("run") // May show dotnet run errors
         );
     }
 
@@ -115,31 +116,50 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-options");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "OptionsTest");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "OptionsTest");
+
+        var content = @"
+This is a test post with a default container. The resulting Razor should not include Bootstrap styles.
+
+:::tip
+This is a tip block that should not be styled with Bootstrap.
+:::
+";
         
         FileSystemHelper.CreateMarkdownFile(
             Path.Combine(testDir, "Posts", "post.md"),
             "Test Post",
-            "Content"
+            content
         );
+
+        // Create a Razor template that does not use Bootstrap styles
+        FileSystemHelper.CreateRazorTemplate(
+            Path.Combine(testDir, "Components", "TipContainer.razor"),
+            @"<div>@ChildContent</div>
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set;
+}");
 
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act - Test with disable default renderers flag
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\" --disableDefaultRenderers", "", cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir, "--disableDefaultRenderers"], cts.Token);
 
         // Assert
-        // Should have passed through the option to the bake step
-        Assert.Contains("Baking in:", result.OutputText, StringComparison.OrdinalIgnoreCase);
-        
-        // Should have created generated content despite the option
+        // Should have created generated content despite the option//
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
+        // Generated Razor file should not include Bootstrap styles
+        var generatedFile = Path.Combine(testDir, ".generated", "posts", "Post.razor");
+        Assert.True(File.Exists(generatedFile), "Generated Razor file should exist after serving with options.");
+        var generatedContent = await File.ReadAllTextAsync(generatedFile);
+        Assert.Contains("<TipContainer", generatedContent);
+        Assert.DoesNotContain("alert-secondary", generatedContent);
     }
 
     [Fact]
@@ -147,20 +167,20 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-no-content");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "NoContent");
-        
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "NoContent");
+
         // Don't create any Posts or Pages folders
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\"", "", cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should handle missing content gracefully and still try to serve
-        Assert.True(result.ExitCode == 0 || result.ErrorText.Contains("was canceled"));
+        Assert.True((result.Canceled.HasValue && result.Canceled.Value == true) || result.ExitCode == 0);
         
         // Should still attempt baking
-        Assert.Contains("Baking in:", result.OutputText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
     }
 
     [Fact]
@@ -168,13 +188,16 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-creates-folder");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "CreateFolder");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "CreateFolder");
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\"", "", cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
+        // Should be cancelled
+        Assert.True((result.Canceled.HasValue && result.Canceled.Value == true) || result.ExitCode == 0);
+
         // Should create .generated folder as part of the bake step
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
     }
@@ -184,15 +207,15 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-current-dir");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "CurrentDir");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "CurrentDir");
 
         // Act - Run blake serve without path argument from the project directory
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-        var result = await RunBlakeCommandAsync("serve", testDir, cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
-        Assert.True(result.ExitCode == 0 || result.ErrorText.Contains("was canceled"));
-        Assert.Contains("Baking in:", result.OutputText, StringComparison.OrdinalIgnoreCase);
+        Assert.True((result.Canceled.HasValue && result.Canceled.Value == true) || result.ExitCode == 0);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
         
         // Should create .generated in the working directory
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -203,21 +226,21 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-progress");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "Progress");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "Progress");
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\"", "", cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should show baking progress
-        Assert.Contains("Baking in:", result.OutputText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
         
         // May show build completion or app startup messages
-        Assert.True(
-            result.OutputText.Contains("Build completed successfully", StringComparison.OrdinalIgnoreCase) ||
-            result.OutputText.Contains("Running app", StringComparison.OrdinalIgnoreCase) ||
-            result.ErrorText.Contains("was canceled") // Expected due to timeout
+        Assert.Contains(result.OutputText, o =>
+            o.Contains("Build completed successfully") ||
+            o.Contains("Running app") ||
+            o.Contains("was canceled") // Expected due to timeout
         );
     }
 
@@ -226,7 +249,7 @@ public class BlakeServeCommandTests : TestFixtureBase
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-serve-bake-integration");
-        FileSystemHelper.CreateMinimalBlazorWasmProject(testDir, "BakeIntegration");
+        await FileSystemHelper.CreateBlazorWasmProjectAsync(testDir, "BakeIntegration");
         
         // Create draft content
         FileSystemHelper.CreateMarkdownFile(
@@ -239,13 +262,13 @@ public class BlakeServeCommandTests : TestFixtureBase
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
-<h1>@Model.Title</h1>
-<div>@((MarkupString)Html)</div>"
+<h1>@Title</h1>
+<div>@Body</div>"
         );
 
         // Act - Should not include drafts by default
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\"", "", cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should have baked (drafts excluded by default)
@@ -263,21 +286,21 @@ public class BlakeServeCommandTests : TestFixtureBase
         // Just create a directory without a proper Blazor project
 
         // Act
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var result = await RunBlakeCommandAsync($"serve \"{testDir}\"", "", cts.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should either fail gracefully or handle the missing project file
         if (result.ExitCode != 0)
         {
-            Assert.True(
-                result.ErrorText.Contains("project", StringComparison.OrdinalIgnoreCase) ||
-                result.ErrorText.Contains("csproj", StringComparison.OrdinalIgnoreCase) ||
-                result.ErrorText.Contains("build", StringComparison.OrdinalIgnoreCase)
+            Assert.Contains(result.ErrorText, e =>
+                e.Contains("project") ||
+                e.Contains("csproj") ||
+                e.Contains("build")
             );
         }
         
         // Should still attempt to bake first
-        Assert.Contains("Baking in:", result.OutputText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
     }
 }

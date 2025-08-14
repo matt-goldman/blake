@@ -7,6 +7,57 @@ namespace Blake.BuildTools.Tests.Utils;
 public class PluginLoaderTests
 {
     [Fact]
+    public void LoadPluginDLLs_WithTestPlugin_LoadsSuccessfully()
+    {
+        // Arrange
+        var logger = new TestLogger();
+        var pluginPath = Path.GetFullPath(Path.Combine(
+            Directory.GetCurrentDirectory(),
+            "..", "..", "..", "..", "..", "tests", "Blake.IntegrationTests", 
+            "TestPlugin", "bin", "Debug", "net9.0", 
+            "BlakePlugin.TestPlugin.dll"
+        ));
+
+        // Skip test if plugin doesn't exist (build not run)
+        if (!File.Exists(pluginPath))
+        {
+            Assert.True(true, "Plugin not built - skipping test");
+            return;
+        }
+
+        var files = new List<string> { pluginPath };
+        var plugins = new List<PluginContext>();
+
+        // Act & Assert - should not throw exception
+        var exception = Record.Exception(() =>
+        {
+            // Use reflection to call the private method
+            var method = typeof(PluginLoader).GetMethod("LoadPluginDLLs", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                
+            if (method == null)
+            {
+                throw new InvalidOperationException("Could not find LoadPluginDLLs method via reflection");
+            }
+                
+            method.Invoke(null, new object[] { files, plugins, logger });
+        });
+
+        // Assert
+        Assert.Null(exception);
+        Assert.Equal(3, plugins.Count); // TestPlugin class has 3 plugin classes
+        
+        // Check that we have all expected plugins
+        var pluginNames = plugins.Select(p => p.Plugin.GetType().Name).OrderBy(n => n).ToList();
+        Assert.Contains("TestPlugin", pluginNames);
+        Assert.Contains("FailingTestPlugin", pluginNames);
+        Assert.Contains("ContentModifyingPlugin", pluginNames);
+        
+        // Ensure no errors were logged
+        Assert.Empty(logger.ErrorMessages);
+    }
+
+    [Fact]
     public void LoadPluginDLLs_WithPluginWithDependencies_LoadsSuccessfully()
     {
         // Arrange

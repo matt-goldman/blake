@@ -85,7 +85,11 @@ Community templates are managed via `TemplateRegistry.json`:
 
 ### Building the Project
 
-**Note**: Blake targets .NET 9.0, ensure you have the correct SDK installed.
+**Note**: Blake targets .NET 9.0, ensure you have the correct SDK installed. If .NET 9.0 is not available in the environment, install it using:
+```bash
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 9.0
+export PATH="$HOME/.dotnet:$PATH"
+```
 
 ```bash
 # Build the solution
@@ -136,6 +140,7 @@ For new site templates:
 - Use dependency injection patterns where applicable
 - Do not make any formatting changes unless explicitly requested
 - Do not include files in commits that contain only formatting or style changes, unless explicitly requested
+- **Do not downgrade .NET versions** - Blake targets .NET 9.0 and is compatible with later versions unless otherwise noted
 - Do not downgrade .NET versions - Blake targets .NET 9.0 and is compatible with later versions unless otherwise noted
 
 ### Testing

@@ -1,8 +1,8 @@
 {
   "profiles": {
     "Blake.CLI": {
-      "commandName": "Project",
-      "commandLineArgs": "init E:\\temp\\blaketest -s"
+      "commandName": "Project"
+      //"commandLineArgs": "init E:\\temp\\blaketest -s"
     }
   }
 }
