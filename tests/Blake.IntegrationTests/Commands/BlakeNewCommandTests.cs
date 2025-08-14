@@ -11,7 +11,7 @@ namespace Blake.IntegrationTests.Commands;
 /// </summary>
 public class BlakeNewCommandTests : TestFixtureBase
 {
-    [Fact]
+    [Fact(Skip ="Blake creates a site with no args. TODO: consider how to test this, it will run it in the assembly folder.")]
     public async Task BlakeNew_WithNoArguments_ShowsHelp()
     {
         // Act

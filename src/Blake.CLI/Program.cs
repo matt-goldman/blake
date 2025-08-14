@@ -336,9 +336,12 @@ public class Program
             {
                 // don't use a template, just create a new Blazor site and initialise
                 logger.LogInformation("No template specified, creating a new Blazor WASM site using the default template.");
+
+                var nameFlag = string.IsNullOrWhiteSpace(newSiteName)? string.Empty : $" --name \"{newSiteName}\"";
+
                 var process = new Process
                 {
-                    StartInfo = new ProcessStartInfo("dotnet", $"new blazorwasm -o \"{directory}\"")
+                    StartInfo = new ProcessStartInfo("dotnet", $"new blazorwasm -o \"{directory}\"{nameFlag}")
                     {
                         RedirectStandardOutput  = true,
                         RedirectStandardError   = true,
