@@ -184,8 +184,8 @@ public class BlakeNewCommandTests : TestFixtureBase
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
-        Assert.True(result.ErrorText.Contains("template") ||
-                   result.ErrorText.Contains("not found"));
+        Assert.Contains(result.ErrorText, e => e.Contains("template") ||
+                   e.Contains("not found"));
     }
 
     [Theory]
@@ -239,9 +239,10 @@ public class BlakeNewCommandTests : TestFixtureBase
         {
             // If failed (network/git issues), should show relevant error
             Logger.LogWarning("URL clone failed (expected in test environment): {Error}", result.ErrorText);
-            Assert.True(result.ErrorText.Contains("git") ||
-                       result.ErrorText.Contains("clone") ||
-                       result.ErrorText.Contains("repository"));
+            Assert.Contains(result.ErrorText, e => 
+                e.Contains("git") ||
+                e.Contains("clone") ||
+                e.Contains("repository"));
         }
     }
 
