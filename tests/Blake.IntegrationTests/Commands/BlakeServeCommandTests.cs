@@ -8,6 +8,7 @@ namespace Blake.IntegrationTests.Commands;
 /// </summary>
 public class BlakeServeCommandTests : TestFixtureBase
 {
+    // NOTE: All these must run using dotnet rather than the Blake CLI directly, as the processes need to be terminated before test execution proceeds
     [Fact]
     public async Task BlakeServe_WithNonExistentPath_ShowsError()
     {
@@ -16,7 +17,7 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act - Use a short timeout since serve command runs indefinitely
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var result = await RunBlakeCommandAsync(["serve", nonExistentPath], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", nonExistentPath, cancellationToken: cts.Token);
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
@@ -45,20 +46,20 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act - Start serve command but cancel quickly
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should have attempted to bake first
-        Assert.Contains("Baking in:", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
         
         // Should have created generated content
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
         
         // May show "Build completed successfully" or start showing dotnet run output
-        Assert.True(
-            result.OutputText.Contains("Build completed successfully") ||
-            result.OutputText.Contains("Running app") ||
-            result.ErrorText.Contains("was canceled") // Expected due to timeout
+        Assert.Contains(result.OutputText, o =>
+                o.Contains("Build completed successfully") ||
+                o.Contains("Running app") ||
+                o.Contains("was canceled") // Expected due to timeout
         );
     }
 
@@ -78,7 +79,7 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         if (result.ExitCode != 0)
@@ -98,15 +99,15 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should attempt to run the app (even if it fails due to missing dependencies in test environment)
-        Assert.True(
-            result.OutputText.Contains("Running app") ||
-            result.OutputText.Contains("dotnet run") ||
-            result.ErrorText.Contains("was canceled") || // Expected due to timeout
-            result.ErrorText.Contains("run") // May show dotnet run errors
+        Assert.Contains(result.OutputText, o =>
+            o.Contains("Running app") ||
+            o.Contains("dotnet run") ||
+            o.Contains("was canceled") || // Expected due to timeout
+            o.Contains("run") // May show dotnet run errors
         );
     }
 
@@ -136,7 +137,7 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Assert
         // Should have passed through the option to the bake step
-        Assert.Contains("Baking in:", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
         
         // Should have created generated content despite the option
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -153,14 +154,14 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should handle missing content gracefully and still try to serve
         Assert.True(result.ExitCode == 0 || result.ErrorText.Contains("was canceled"));
         
         // Should still attempt baking
-        Assert.Contains("Baking in:", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
     }
 
     [Fact]
@@ -172,7 +173,7 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should create .generated folder as part of the bake step
@@ -188,11 +189,11 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act - Run blake serve without path argument from the project directory
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         Assert.True(result.ExitCode == 0 || result.ErrorText.Contains("was canceled"));
-        Assert.Contains("Baking in:", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
         
         // Should create .generated in the working directory
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -207,17 +208,17 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should show baking progress
-        Assert.Contains("Baking in:", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
         
         // May show build completion or app startup messages
-        Assert.True(
-            result.OutputText.Contains("Build completed successfully") ||
-            result.OutputText.Contains("Running app") ||
-            result.ErrorText.Contains("was canceled") // Expected due to timeout
+        Assert.Contains(result.OutputText, o =>
+            o.Contains("Build completed successfully") ||
+            o.Contains("Running app") ||
+            o.Contains("was canceled") // Expected due to timeout
         );
     }
 
@@ -245,7 +246,7 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act - Should not include drafts by default
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should have baked (drafts excluded by default)
@@ -264,20 +265,20 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
+        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
 
         // Assert
         // Should either fail gracefully or handle the missing project file
         if (result.ExitCode != 0)
         {
-            Assert.True(
-                result.ErrorText.Contains("project") ||
-                result.ErrorText.Contains("csproj") ||
-                result.ErrorText.Contains("build")
+            Assert.Contains(result.ErrorText, e =>
+                e.Contains("project") ||
+                e.Contains("csproj") ||
+                e.Contains("build")
             );
         }
         
         // Should still attempt to bake first
-        Assert.Contains("Baking in:", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
     }
 }
