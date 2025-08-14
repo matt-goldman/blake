@@ -12,14 +12,14 @@ public class Program : IDisposable
 
     public static async Task<int> Main(string[] args)
     {
-        using var loggerFactory = CreateLoggerFactory(args);
-        var logger = loggerFactory.CreateLogger("Blake");
-
-        return await RunAsync(args, logger);
+        return await RunAsync(args);
     }
 
-    internal static async Task<int> RunAsync(string[] args, ILogger logger)
+    internal static async Task<int> RunAsync(string[] args, ILogger? logger = null)
     {
+        // Create a logger factory with the specified log level
+        logger ??= CreateLoggerFactory(args).CreateLogger<Program>();
+
         if (args.Length == 0)
         {
             await Console.Error.WriteLineAsync("Required argument missing.");
