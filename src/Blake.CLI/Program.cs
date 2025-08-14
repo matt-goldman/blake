@@ -255,17 +255,21 @@ public class Program
             // TODO: Improve this with Specter.Console or similar
             if (templateList.Count > 0)
             {
+                logger.LogInformation("Available templates: {count}", templateList.Count);
                 Console.WriteLine("Available templates:");
                 Console.WriteLine("Template Name             | Short name       | Description               | Main Category       | Author");
                 Console.WriteLine("--------------------------|------------------|---------------------------|---------------------|-----------------");
                 foreach (var template in templateList)
                 {
                     Console.WriteLine($"{template.Name,-26} | {template.ShortName,-16} | {template.Description,-25} | {template.MainCategory,-19} | {template.Author}");
+                    logger.LogInformation("Template: {name} ({shortName}) - {description} | Category: {category} | Author: {author}", 
+                        template.Name, template.ShortName, template.Description, template.MainCategory, template.Author);
                 }
             }
             else
             {
                 Console.WriteLine("No templates found.");
+                logger.LogDebug("No templates found.");
             }
             
             return 0;
@@ -355,12 +359,13 @@ public class Program
                     if (initResult == 0)
                     {
                         logger.LogInformation("✅ New site {newSiteName} created successfully.", newSiteName);
+                        return await BakeBlakeAsync([string.Empty, fileName], logger); // ensure path is second argument
                     }
                     else
                     {
-                        logger.LogError("Failed to create new Blake site");
+                        logger.LogError("Failed to create new Blazor WASM site. Error: {error}", process.StandardError.ReadToEnd());
                     }
-                    
+
                     return initResult;
                 }
             }
@@ -377,13 +382,14 @@ public class Program
         if (newResult != 0)
         {
             logger.LogError("Failed to create new Blake site");
+            return newResult;
         }
         else
         {
             logger.LogInformation("✅ New site {newSiteName} created successfully.", newSiteName);
         }
-        
-        return newResult;
+
+        return await BakeBlakeAsync(args, logger);
     }
 
     private static string GetPathFromArgs(string[] args)

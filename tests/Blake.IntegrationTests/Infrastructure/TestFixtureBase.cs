@@ -59,9 +59,11 @@ public abstract class TestFixtureBase : IDisposable
     /// <summary>
     /// Runs a CLI command using the blake executable.
     /// </summary>
-    protected async Task<ProcessResult> RunBlakeFromDotnetAsync(string command, string workingDirectory = "", CancellationToken cancellationToken = default)
+    protected async Task<ProcessResult> RunBlakeFromDotnetAsync(string command, string workingDirectory = "", bool debug = false, CancellationToken cancellationToken = default)
     {
-        return await RunProcessAsync("dotnet", $"run --project \"{GetCliProjectPath()}\" -- {command}", workingDirectory, cancellationToken);
+        string debugFlag = debug ? "-c Debug " : string.Empty;
+
+        return await RunProcessAsync("dotnet", $"run --project \"{GetCliProjectPath()}\" {debugFlag}-- {command}", workingDirectory, cancellationToken);
     }
 
     /// <summary>

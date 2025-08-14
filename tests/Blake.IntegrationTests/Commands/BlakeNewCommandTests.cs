@@ -1,4 +1,6 @@
+using Blake.CLI;
 using Blake.IntegrationTests.Infrastructure;
+using Blake.Types;
 using Microsoft.Extensions.Logging;
 
 namespace Blake.IntegrationTests.Commands;
@@ -18,26 +20,53 @@ public class BlakeNewCommandTests : TestFixtureBase
         // Assert
         Assert.NotEqual(0, result.ExitCode);
         // Should show help or error about missing path
-        Assert.True(result.OutputText.Contains("path") ||
-                    result.ErrorText.Contains("path"    ) ||
-                    result.OutputText.Contains("usage"));
+        Assert.Contains(result.OutputText, o => o.Contains("path") || o.Contains("usage"));
     }
 
     [Fact]
     public async Task BlakeNew_WithListOption_ShowsAvailableTemplates()
     {
         // Act
-        var result = await RunBlakeCommandAsync(["new"," --list"]);
+        
+        // create template registry file in user profile directory
+        const string shortName1 = "tailwind-sample";
+        const string shortName2 = "simpledocs";
+        const string longName1 = "Blake Simple Tailwind Sample";
+        const string longName2 = "Blake Simple Docs";
+
+        var templateRegistryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".blake", "TemplateRegistry.json");
+        if(!File.Exists(templateRegistryPath))
+        {
+            // Create a mock TemplateRegistry.json for testing
+            var templates = new List<SiteTemplate>
+            {
+                new (Guid.Empty, shortName1, longName1, "", "", "", DateTime.MinValue, ""),
+                new (Guid.Empty, shortName2, longName2, "", "", "", DateTime.MinValue, "")
+            };
+
+            var jsonContent = System.Text.Json.JsonSerializer.Serialize(templates, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            Directory.CreateDirectory(Path.GetDirectoryName(templateRegistryPath)!);
+            File.WriteAllText(templateRegistryPath, jsonContent);
+        }
+
+        // Has to be run with debug to use local TemplateRegistry.json, otherwise it calls the repo
+        var result = await RunBlakeFromDotnetAsync("new --list", debug: true);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Available templates", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("Available templates"));
         
         // Should show templates from TemplateRegistry.json
-        Assert.Contains("tailwind-sample", result.OutputText);
-        Assert.Contains("blakedocs", result.OutputText);
-        Assert.Contains("Blake Simple Tailwind Sample", result.OutputText);
-        Assert.Contains("Blake Docs", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains(shortName1));
+        Assert.Contains(result.OutputText, o => o.Contains(shortName2));
+        Assert.Contains(result.OutputText, o => o.Contains(longName1));
+        Assert.Contains(result.OutputText, o => o.Contains(longName2));
+
+        // Cleanup the mock TemplateRegistry.json
+        if (File.Exists(templateRegistryPath))
+        {
+            File.Delete(templateRegistryPath);
+        }
     }
 
     [Fact]
@@ -49,11 +78,11 @@ public class BlakeNewCommandTests : TestFixtureBase
         var projectPath = Path.Combine(testDir, projectName);
 
         // Act
-        var result = await RunBlakeCommandAsync(["bake", projectPath]);
+        var result = await RunBlakeCommandAsync(["new", projectPath, "-s"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("created successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("created successfully"));
 
         // Should create a Blazor WASM project structure
         FileSystemHelper.AssertDirectoryExists(projectPath);
@@ -62,11 +91,10 @@ public class BlakeNewCommandTests : TestFixtureBase
         FileSystemHelper.AssertFileExists(Path.Combine(projectPath, "App.razor"));
         
         // Should have Blake-specific folders created by init
-        FileSystemHelper.AssertDirectoryExists(Path.Combine(projectPath, "Posts"));
         FileSystemHelper.AssertDirectoryExists(Path.Combine(projectPath, "Pages"));
         
         // Should contain sample content because init is called with includeSampleContent=true
-        FileSystemHelper.AssertFileExists(Path.Combine(projectPath, "Posts", "hello-world.md"));
+        FileSystemHelper.AssertFileExists(Path.Combine(projectPath, "Pages", "SamplePAge.md"));
     }
 
     [Fact]
@@ -82,7 +110,7 @@ public class BlakeNewCommandTests : TestFixtureBase
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("created successfully", result.OutputText);
+        Assert.Contains(result.OutputText, o => o.Contains("created successfully"));
         
         // Should use the provided site name for the project file
         FileSystemHelper.AssertFileExists(Path.Combine(projectPath, $"{projectName}.csproj"));
@@ -101,7 +129,7 @@ public class BlakeNewCommandTests : TestFixtureBase
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("invalid", result.ErrorText);
+        Assert.Contains(result.ErrorText, e => e.Contains("invalid"));
     }
 
     [Fact]
@@ -112,7 +140,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         var projectPath = Path.Combine(testDir, "deeply", "nested", "path", "MyProject");
 
         // Act  
-        var result = await RunBlakeCommandAsync(["bake", projectPath]);
+        var result = await RunBlakeCommandAsync(["new", projectPath]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -130,7 +158,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         File.WriteAllText(Path.Combine(projectPath, "existing-file.txt"), "content");
 
         // Act
-        var result = await RunBlakeCommandAsync(["bake", projectPath]);
+        var result = await RunBlakeCommandAsync(["new", projectPath]);
 
         // Assert
         // The behavior might vary - some generators create anyway, others fail
@@ -175,7 +203,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         {
             // If successful, should have cloned the template
             FileSystemHelper.AssertDirectoryExists(projectPath);
-            Assert.Contains("created successfully", result.OutputText);
+            Assert.Contains(result.OutputText, o => o.Contains("created successfully"));
         }
         else
         {
@@ -203,7 +231,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         if (result.ExitCode == 0)
         {
             FileSystemHelper.AssertDirectoryExists(projectPath);
-            Assert.Contains("created successfully", result.OutputText);
+            Assert.Contains(result.OutputText, o => o.Contains("created successfully"));
         }
         else
         {
@@ -243,7 +271,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         var projectPath = Path.Combine(testDir, projectName);
 
         // Act - Create project
-        var createResult = await RunBlakeCommandAsync(["new", projectPath]);
+        var createResult = await RunBlakeCommandAsync(["new", projectPath, "-s"]);
         Assert.Equal(0, createResult.ExitCode);
 
         // Act - Try to build the project
@@ -251,6 +279,6 @@ public class BlakeNewCommandTests : TestFixtureBase
 
         // Assert
         Assert.Equal(0, buildResult.ExitCode);
-        Assert.Contains("Build succeeded", buildResult.OutputText);
+        Assert.Contains(buildResult.OutputText, o => o.Contains("Build succeeded"));
     }
 }
