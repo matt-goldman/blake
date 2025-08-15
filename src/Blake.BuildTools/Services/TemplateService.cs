@@ -11,33 +11,33 @@ public class TemplateService : ITemplateService
     
     private static HttpClient CurrentClient => _httpClient ??= new HttpClient { BaseAddress = new Uri("https://raw.githubusercontent.com") };
     
-    public async Task<IEnumerable<SiteTemplate>> GetTemplatesAsync()
+    public async Task<IEnumerable<SiteTemplate>> GetTemplatesAsync(CancellationToken cancellationToken)
     {
 #if DEBUG
         var userProfileFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var templateFilePath = Path.Combine(userProfileFolder, ".blake", "TemplateRegistry.json");
-        var fileContent = await File.ReadAllTextAsync(templateFilePath);
+        var fileContent = await File.ReadAllTextAsync(templateFilePath, cancellationToken);
         var templates = System.Text.Json.JsonSerializer.Deserialize<TemplateRegistry>(fileContent);
         return templates?.Templates ?? [];
 #else
-        var templates = await CurrentClient.GetFromJsonAsync<TemplateRegistry>("matt-goldman/blake/refs/heads/main/TemplateRegistry.json");
+        var templates = await CurrentClient.GetFromJsonAsync<TemplateRegistry>("matt-goldman/blake/refs/heads/main/TemplateRegistry.json", cancellationToken);
         return templates?.Templates ?? [];
 #endif
     }
 
-    public async Task<SiteTemplate?> GetTemplateAsync(Guid id)
+    public async Task<SiteTemplate?> GetTemplateAsync(Guid id, CancellationToken cancellationToken)
     {
-        var templates = await GetTemplatesAsync();
+        var templates = await GetTemplatesAsync(cancellationToken);
         return templates.FirstOrDefault(t => t.Id == id);
     }
 
-    public async Task<SiteTemplate?> GetTemplateAsync(string name)
+    public async Task<SiteTemplate?> GetTemplateAsync(string name, CancellationToken cancellationToken)
     {
-        var templates = await GetTemplatesAsync();
+        var templates = await GetTemplatesAsync(cancellationToken);
         return templates.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || t.ShortName.Equals(name, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<int> CloneTemplateAsync (string name, string? destinationPath = null, Guid? templateId = null, string? repoUrl = null, ILogger? logger = null)
+    public async Task<int> CloneTemplateAsync (string name, ILogger logger, CancellationToken cancellationToken, string? destinationPath = null, Guid? templateId = null, string? repoUrl = null)
     {
         string templateName;
 
@@ -46,12 +46,12 @@ public class TemplateService : ITemplateService
         if (repoUrl is null)
         {
             var template = templateId.HasValue
-                ? await GetTemplateAsync(templateId.Value)
-                : await GetTemplateAsync(name);
+                ? await GetTemplateAsync(templateId.Value, cancellationToken)
+                : await GetTemplateAsync(name, cancellationToken);
         
             if (template == null)
             {
-                logger?.LogError("Template with ID '{templateId}' or name '{name}' not found.", templateId, name);
+                logger.LogError("Template with ID '{templateId}' or name '{name}' not found.", templateId, name);
                 return -1;
             }
 
@@ -66,7 +66,7 @@ public class TemplateService : ITemplateService
         // backup existing git folder and files first
         if (Directory.Exists(destinationPath ?? string.Empty) && Directory.GetFiles(destinationPath ?? string.Empty, ".git", SearchOption.AllDirectories).Length != 0)
         {
-            logger?.LogDebug("Existing .git directory found. Backing it up before cloning the new template...");
+            logger.LogDebug("Existing .git directory found. Backing it up before cloning the new template...");
             var backupPath = Path.Combine(destinationPath ?? string.Empty, ".git_backup");
 
             BackupGitFiles(destinationPath ?? string.Empty, backupPath, logger);
@@ -74,7 +74,7 @@ public class TemplateService : ITemplateService
             requiresGitRestore = true;
         }
 
-        logger?.LogInformation("🛠️  Creating new site from template '{templateName}'...", templateName);
+        logger.LogInformation("🛠️  Creating new site from template '{templateName}'...", templateName);
         
         var process = new Process
         {
@@ -90,50 +90,65 @@ public class TemplateService : ITemplateService
         };
         
         // Start the git clone process
-        logger?.LogInformation("Cloning template from {repoUrl}...", repoUrl);
+        logger.LogInformation("Cloning template from {repoUrl}...", repoUrl);
         
         process.Start();
 
-        await process.WaitForExitAsync();
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { 
+            logger.LogWarning("Git clone operation was cancelled for template '{templateName}'.", templateName);
+            return -1;
+        }
         
         if (process.ExitCode != 0)
         {
             var errorOutput = await process.StandardError.ReadToEndAsync();
-            logger?.LogError("Failed to clone template '{templateName}': {errorOutput}", templateName, errorOutput);
+            logger.LogError("Failed to clone template '{templateName}': {errorOutput}", templateName, errorOutput);
             return -1;
         }
         
-        logger?.LogInformation("Template '{templateName}' cloned successfully to '{destinationPath}'.", templateName, destinationPath ?? Directory.GetCurrentDirectory());
+        logger.LogInformation("Template '{templateName}' cloned successfully to '{destinationPath}'.", templateName, destinationPath ?? Directory.GetCurrentDirectory());
 
-        logger?.LogDebug("Cleaning up the cloned directory...");
+        logger.LogDebug("Cleaning up the cloned directory...");
+        
         var newSiteDirectory = destinationPath ?? Directory.GetCurrentDirectory();
+        
         if (Directory.Exists(newSiteDirectory))
         {
             // Remove the .git directory to avoid confusion
             var gitDirectory = Path.Combine(newSiteDirectory, ".git");
+            
             if (!Directory.Exists(gitDirectory)) return 0;
+
             RemoveReadOnlyGitDirectory(gitDirectory, logger);
+            
             var gitFiles = new[] { ".gitignore", ".gitattributes" };
+            
             foreach (var gitFile in gitFiles)
             {
                 var gitFilePath = Path.Combine(newSiteDirectory, gitFile);
+
                 if (File.Exists(gitFilePath))
                 {
                     File.Delete(gitFilePath);
-                    logger?.LogDebug("Removed {gitFile} from the cloned template.", gitFile);
+                    logger.LogDebug("Removed {gitFile} from the cloned template.", gitFile);
                 }
             }
-            logger?.LogDebug("Removed .git directory from the cloned template.");
+            logger.LogDebug("Removed .git directory from the cloned template.");
         }
         else
         {
-            logger?.LogError("Template directory '{newSiteDirectory}' does not exist.", newSiteDirectory);
+            logger.LogError("Template directory '{newSiteDirectory}' does not exist.", newSiteDirectory);
             return -1;
         }
 
         if (requiresGitRestore)
         {
-            logger?.LogDebug("Restoring the original .git directory from backup...");
+            logger.LogDebug("Restoring the original .git directory from backup...");
             var backupPath = Path.Combine(destinationPath ?? string.Empty, ".git_backup");
             RestoreGitFiles(destinationPath ?? string.Empty, backupPath, logger);
         }
@@ -153,7 +168,7 @@ public class TemplateService : ITemplateService
         if (Directory.Exists(gitDirectory))
         {
             Directory.Move(gitDirectory, Path.Combine(backupPath, ".git"));
-            logger?.LogDebug("Existing .git directory backed up successfully.");
+            logger.LogDebug("Existing .git directory backed up successfully.");
         }
         
         // also backup .gitignore and other git related files
@@ -165,7 +180,7 @@ public class TemplateService : ITemplateService
             {
                 var backupFilePath = Path.Combine(backupPath, gitFile);
                 File.Copy(sourceFilePath, backupFilePath, true);
-                logger?.LogDebug("Backed up {gitFile} to {backupFilePath}", gitFile, backupFilePath);
+                logger.LogDebug("Backed up {gitFile} to {backupFilePath}", gitFile, backupFilePath);
             }
         }
     }
@@ -179,7 +194,7 @@ public class TemplateService : ITemplateService
         if (Directory.Exists(gitBackupDirectory))
         {
             Directory.Move(gitBackupDirectory, Path.Combine(sourcePath, ".git"));
-            logger?.LogDebug("Restored .git directory from backup successfully.");
+            logger.LogDebug("Restored .git directory from backup successfully.");
         }
         
         // also restore .gitignore and other git related files
@@ -191,25 +206,27 @@ public class TemplateService : ITemplateService
             {
                 var sourceFilePath = Path.Combine(sourcePath, gitFile);
                 File.Copy(backupFilePath, sourceFilePath, true);
-                logger?.LogDebug("Restored {gitFile} from backup to {sourceFilePath}", gitFile, sourceFilePath);
+                logger.LogDebug("Restored {gitFile} from backup to {sourceFilePath}", gitFile, sourceFilePath);
             }
         }
     }
 
-    private static void RemoveReadOnlyGitDirectory(string gitDirectory, ILogger? logger)
+    private static void RemoveReadOnlyGitDirectory(string gitDirectory, ILogger logger)
     {
-        logger?.LogDebug("Removing read-only attributes from .git directory before deletion...");
+        logger.LogDebug("Removing read-only attributes from .git directory before deletion...");
         
         try
         {
             // Recursively remove read-only attributes from all files and directories
             SetDirectoryWritable(gitDirectory);
+
             Directory.Delete(gitDirectory, true);
-            logger?.LogDebug("Successfully removed .git directory after clearing read-only attributes.");
+            
+            logger.LogDebug("Successfully removed .git directory after clearing read-only attributes.");
         }
         catch (Exception ex)
         {
-            logger?.LogWarning("Failed to delete .git directory: {Error}", ex.Message);
+            logger.LogWarning("Failed to delete .git directory: {Error}", ex.Message);
             // Don't fail the entire operation if we can't clean up the .git directory
         }
     }

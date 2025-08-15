@@ -46,11 +46,11 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act - Start serve command
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         // Should have attempted to bake first
-        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
+        Assert.Contains(result.OutputText, o => o.Contains($"Baking Blake site in: {testDir}"));
         
         // Should have created generated content
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -79,7 +79,7 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         if (result.ExitCode != 0)
@@ -99,7 +99,7 @@ public class BlakeServeCommandTests : TestFixtureBase
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         // Should attempt to run the app (even if it fails due to missing dependencies in test environment)
@@ -137,17 +137,29 @@ This is a tip block that should not be styled with Bootstrap.
             Path.Combine(testDir, "Components", "TipContainer.razor"),
             @"<div>@ChildContent</div>
 @code {
-    [Parameter] public RenderFragment? ChildContent { get; set;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 }");
 
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
+@using OptionsTest.Components
 <h1>@Title</h1>
 <div>@Body</div>"
         );
 
         // Act - Test with disable default renderers flag
+
+        // Initialize the Blazor app
+        var csprojPath = Path.Combine(testDir, "OptionsTest.csproj");
+        var initResult = await RunBlakeCommandAsync(["init", csprojPath]);
+
+        // fail early if init failed
+        if (initResult.ExitCode != 0)
+        {
+            throw new Exception($"Failed to initialize Blake project: {string.Join(Environment.NewLine, initResult.ErrorText)}");
+        }
+
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var result = await RunBlakeCommandAsync(["serve", testDir, "--disableDefaultRenderers"], cts.Token);
 
@@ -158,7 +170,7 @@ This is a tip block that should not be styled with Bootstrap.
         var generatedFile = Path.Combine(testDir, ".generated", "posts", "Post.razor");
         Assert.True(File.Exists(generatedFile), "Generated Razor file should exist after serving with options.");
         var generatedContent = await File.ReadAllTextAsync(generatedFile);
-        Assert.Contains("<TipContainer", generatedContent);
+        Assert.Contains("<TipContainer >", generatedContent);
         Assert.DoesNotContain("alert-secondary", generatedContent);
     }
 
@@ -173,14 +185,14 @@ This is a tip block that should not be styled with Bootstrap.
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         // Should handle missing content gracefully and still try to serve
         Assert.True((result.Canceled.HasValue && result.Canceled.Value == true) || result.ExitCode == 0);
-        
+
         // Should still attempt baking
-        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
+        Assert.Contains(result.OutputText, o => o.Contains($"Baking Blake site in: {testDir}"));
     }
 
     [Fact]
@@ -192,7 +204,7 @@ This is a tip block that should not be styled with Bootstrap.
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         // Should be cancelled
@@ -211,11 +223,11 @@ This is a tip block that should not be styled with Bootstrap.
 
         // Act - Run blake serve without path argument from the project directory
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         Assert.True((result.Canceled.HasValue && result.Canceled.Value == true) || result.ExitCode == 0);
-        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
+        Assert.Contains(result.OutputText, o => o.Contains($"Baking Blake site in: {testDir}"));
         
         // Should create .generated in the working directory
         FileSystemHelper.AssertDirectoryExists(Path.Combine(testDir, ".generated"));
@@ -230,11 +242,11 @@ This is a tip block that should not be styled with Bootstrap.
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         // Should show baking progress
-        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
+        Assert.Contains(result.OutputText, o => o.Contains($"Baking Blake site in: {testDir}"));
         
         // May show build completion or app startup messages
         Assert.Contains(result.OutputText, o =>
@@ -268,7 +280,7 @@ This is a tip block that should not be styled with Bootstrap.
 
         // Act - Should not include drafts by default
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         // Should have baked (drafts excluded by default)
@@ -287,7 +299,7 @@ This is a tip block that should not be styled with Bootstrap.
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var result = await RunBlakeFromDotnetAsync("serve", testDir, cancellationToken: cts.Token);
+        var result = await RunBlakeCommandAsync(["serve", testDir], cts.Token);
 
         // Assert
         // Should either fail gracefully or handle the missing project file
@@ -301,6 +313,6 @@ This is a tip block that should not be styled with Bootstrap.
         }
         
         // Should still attempt to bake first
-        Assert.Contains(result.OutputText, o => o.Contains("Baking in:"));
+        Assert.Contains(result.OutputText, o => o.Contains($"Baking Blake site in: {testDir}"));
     }
 }

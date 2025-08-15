@@ -43,7 +43,7 @@ public abstract class TestFixtureBase : IDisposable
     {
         var startTime = DateTime.UtcNow;
 
-        var exitCode = await Blake.CLI.Program.RunAsync(args, Logger);
+        var exitCode = await Blake.CLI.Program.RunAsync(args, Logger, cancellationToken);
 
         var duration = DateTime.UtcNow - startTime;
 

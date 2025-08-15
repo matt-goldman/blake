@@ -4,7 +4,7 @@ namespace Blake.BuildTools.Generator;
 
 public static class SampleContentBuilder
 {
-    public static async Task InitSampleContent(string projectFilePath, ILogger? logger)
+    public static async Task InitSampleContent(string projectFilePath, ILogger logger, CancellationToken cancellationToken)
     {
         var pagesFolder = Path.Combine(Path.GetDirectoryName(projectFilePath) ?? string.Empty, "Pages");
         if (!Directory.Exists(pagesFolder))
@@ -16,24 +16,24 @@ public static class SampleContentBuilder
 
         if (!File.Exists(samplePagePath))
         {
-            await File.WriteAllTextAsync(samplePagePath, SamplePageContent);
-            logger?.LogInformation("✅ Sample page created at: {samplePagePath}", samplePagePath);
+            await File.WriteAllTextAsync(samplePagePath, SamplePageContent, cancellationToken);
+            logger.LogInformation("✅ Sample page created at: {samplePagePath}", samplePagePath);
         }
         else
         {
-            logger?.LogInformation("Sample page already exists at: {samplePagePath}", samplePagePath);
+            logger.LogInformation("Sample page already exists at: {samplePagePath}", samplePagePath);
         }
 
         // Add sample template
         var templatePath = Path.Combine(pagesFolder, "template.razor");
         if (!File.Exists(templatePath))
         {
-            await File.WriteAllTextAsync(templatePath, SampleTemplate);
-            logger?.LogInformation("✅ Sample template created at: {templatePath}", templatePath);
+            await File.WriteAllTextAsync(templatePath, SampleTemplate, cancellationToken);
+            logger.LogInformation("✅ Sample template created at: {templatePath}", templatePath);
         }
         else
         {
-            logger?.LogInformation("Sample template already exists at: {templatePath}", templatePath);
+            logger.LogInformation("Sample template already exists at: {templatePath}", templatePath);
         }
 
         // Add sample component
@@ -47,12 +47,12 @@ public static class SampleContentBuilder
 
         if (!File.Exists(sampleComponentPath))
         {
-            await File.WriteAllTextAsync(sampleComponentPath, SampleComponent);
-           logger?.LogInformation("✅ Sample component created at: {sampleComponentPath}", sampleComponentPath);
+            await File.WriteAllTextAsync(sampleComponentPath, SampleComponent, cancellationToken);
+           logger.LogInformation("✅ Sample component created at: {sampleComponentPath}", sampleComponentPath);
         }
         else
         {
-            logger?.LogInformation("Sample component already exists at: {sampleComponentPath}", sampleComponentPath);
+            logger.LogInformation("Sample component already exists at: {sampleComponentPath}", sampleComponentPath);
         }
 
         // update the nav menu
@@ -60,7 +60,7 @@ public static class SampleContentBuilder
 
         if (File.Exists(navMenuPath))
         {
-            var navMenuContent = await File.ReadAllTextAsync(navMenuPath);
+            var navMenuContent = await File.ReadAllTextAsync(navMenuPath, cancellationToken);
             if (navMenuContent.Contains("</nav>"))
             {
                 // Insert the new menu item before the closing </nav> tag
@@ -80,12 +80,12 @@ public static class SampleContentBuilder
                 if (insertIndex != -1)
                 {
                     navMenuContent = navMenuContent.Insert(insertIndex, $"{Environment.NewLine}{newMenuItem}{Environment.NewLine}");
-                    await File.WriteAllTextAsync(navMenuPath, navMenuContent);
-                    logger?.LogInformation("✅ Updated NavMenu.razor with dynamic content links.");
+                    await File.WriteAllTextAsync(navMenuPath, navMenuContent, cancellationToken);
+                    logger.LogInformation("✅ Updated NavMenu.razor with dynamic content links.");
                 }
                 else
                 {
-                    logger?.LogWarning("Could not find </nav> tag in NavMenu.razor to insert dynamic content links.");
+                    logger.LogWarning("Could not find </nav> tag in NavMenu.razor to insert dynamic content links.");
                 }
             }
         }

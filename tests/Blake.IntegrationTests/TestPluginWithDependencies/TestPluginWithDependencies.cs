@@ -45,6 +45,7 @@ public class TestPluginWithDependencies : IBlakePlugin
         var testMessage = $"Plugin dependencies working in AfterBakeAsync. Created {image.Width}x{image.Height} image. GeneratedPageCount: {context.GeneratedPages.Count}";
         
         var testFilePath = Path.Combine(context.ProjectPath, ".plugin-with-deps-after-bake.txt");
+        logger?.LogInformation("TestPluginWithDependencies: {TestMessage}", testMessage);
         File.WriteAllText(testFilePath, testMessage);
         
         return Task.CompletedTask;
