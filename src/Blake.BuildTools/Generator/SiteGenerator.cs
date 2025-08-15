@@ -92,7 +92,7 @@ internal static class SiteGenerator
         {
             try
             {
-                await File.WriteAllTextAsync(generatedPage.OutputPath, generatedPage.RazorHtml);
+                await File.WriteAllTextAsync(generatedPage.OutputPath, generatedPage.RazorHtml, cancellationToken);
                 logger.LogDebug("✅ Successfully wrote page: {GeneratedPageOutputPath}", generatedPage.OutputPath);
             }
             catch (Exception ex)
@@ -102,7 +102,7 @@ internal static class SiteGenerator
         }
 
         // Write content index
-        ContentIndexBuilder.WriteIndex(options.OutputPath, [.. context.GeneratedPages.Select(gp => gp.Page)]);
+        ContentIndexBuilder.WriteIndex(options.OutputPath, [.. context.GeneratedPages.Select(gp => gp.Page)], options.ContinueOnError, logger);
         logger.LogDebug("✅ Generated content index in {OptionsOutputPath}", options.OutputPath);
     }
 
@@ -281,7 +281,11 @@ internal static class SiteGenerator
         return context;
     }
 
-    private static async Task BakeContent(BlakeContext context, GenerationOptions options, ILogger logger, CancellationToken cancellationToken)
+    private static async Task BakeContent(
+        BlakeContext context,
+        GenerationOptions options,
+        ILogger logger,
+        CancellationToken cancellationToken)
     {
         // Bake: Process each markdown file and generate Razor pages
         var mdPipeline = context.PipelineBuilder.Build();
@@ -292,49 +296,69 @@ internal static class SiteGenerator
 
         foreach (var mdPage in context.MarkdownPages)
         {
-            sw.GetStringBuilder().Clear();
-            var mdContent = mdPage.RawMarkdown;
-
-            var frontmatter = FrontmatterHelper.ParseFrontmatter(mdContent, cleanedContent: out _);
-            var page = FrontmatterHelper.MapToMetadata<PageModel>(frontmatter);
-
-            var fileName = Path.GetFileNameWithoutExtension(mdPage.MdPath) ?? "index";
-            var folder = Path.GetDirectoryName(mdPage.MdPath)?.Replace(options.ProjectPath, string.Empty).Trim(Path.DirectorySeparatorChar) ?? string.Empty;
-
-            if (page.Draft && !options.IncludeDrafts)
+            try
             {
-                logger.LogInformation("⚠️  Skipping draft page: {FileName} in {Folder}", fileName, folder);
-                continue;
+                sw.GetStringBuilder().Clear();
+                var mdContent = mdPage.RawMarkdown;
+
+                var frontmatter = FrontmatterHelper.ParseFrontmatter(mdContent, cleanedContent: out _);
+                var page = FrontmatterHelper.MapToMetadata<PageModel>(frontmatter);
+
+                var fileName = Path.GetFileNameWithoutExtension(mdPage.MdPath) ?? "index";
+                var folder =
+                    Path.GetDirectoryName(mdPage.MdPath)?.Replace(options.ProjectPath, string.Empty)
+                        .Trim(Path.DirectorySeparatorChar) ?? string.Empty;
+
+                if (page.Draft && !options.IncludeDrafts)
+                {
+                    logger.LogInformation("⚠️  Skipping draft page: {FileName} in {Folder}", fileName, folder);
+                    continue;
+                }
+
+                page.Slug = mdPage.Slug;
+
+                //var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
+                // 🔄 Parse the markdown
+                var document = Markdig.Parsers.MarkdownParser.Parse(mdContent, mdPipeline);
+
+                // 🖋️ Render it
+                renderer.Render(document);
+                await renderer.Writer.FlushAsync(cancellationToken);
+
+                // 🔙 Get the rendered HTML
+                var renderedHtml = sw.ToString();
+
+                var generatedRazor =
+                    RazorPageBuilder.BuildRazorPage(mdPage.TemplatePath, renderedHtml, mdPage.Slug, page);
+
+                var outputDir = Path.Combine(options.OutputPath, folder.ToLowerInvariant());
+                Directory.CreateDirectory(outputDir);
+
+                // create output filename - remove spaces or dashes, and convert to PascalCase instead
+                // Razor filenames must be PascalCase and cannot contain spaces or dashes; this avoids enforcing this convention in markdown files
+                var fileNameParts = fileName.Split([' ', '-'], StringSplitOptions.RemoveEmptyEntries);
+                var outputFileName = string.Join("",
+                    fileNameParts.Select(part =>
+                        char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
+
+                var outputPath = Path.Combine(outputDir, $"{outputFileName}.razor");
+
+                logger.LogInformation("✅ Generated page: {OutputPath}", outputPath);
+
+                context.GeneratedPages.Add(new GeneratedPage(page, outputPath, generatedRazor));
             }
-
-            page.Slug = mdPage.Slug;
-
-            //var parsedContent = Markdown.ToHtml(mdContent, mdPipeline);
-            // 🔄 Parse the markdown
-            var document = Markdig.Parsers.MarkdownParser.Parse(mdContent, mdPipeline);
-
-            // 🖋️ Render it
-            renderer.Render(document);
-            renderer.Writer.Flush();
-
-            // 🔙 Get the rendered HTML
-            var renderedHtml = sw.ToString();
-
-            var generatedRazor = RazorPageBuilder.BuildRazorPage(mdPage.TemplatePath, renderedHtml, mdPage.Slug, page);
-
-            var outputDir = Path.Combine(options.OutputPath, folder.ToLowerInvariant());
-            Directory.CreateDirectory(outputDir);
-
-            // create output filename - remove spaces or dashes, and convert to PascalCase instead
-            // Razor filenames must be PascalCase and cannot contain spaces or dashes; this avoids enforcing this convention in markdown files
-            var fileNameParts = fileName.Split([' ', '-'], StringSplitOptions.RemoveEmptyEntries);
-            var outputFileName = string.Join("", fileNameParts.Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
-
-            var outputPath = Path.Combine(outputDir, $"{outputFileName}.razor");
-
-            logger.LogInformation("✅ Generated page: {OutputPath}", outputPath);
-
-            context.GeneratedPages.Add(new GeneratedPage(page, outputPath, generatedRazor));
+            catch (Exception e)
+            {
+                logger.LogError(e, "❌ Error processing markdown file: {MdPath}", mdPage.MdPath);
+                if (options.ContinueOnError)
+                {
+                    logger.LogWarning("⚠️  Continuing to process other markdown files despite the error.");
+                }
+                else
+                {
+                    throw; // rethrow if not continuing on error
+                }
+            }
         }
     }
 

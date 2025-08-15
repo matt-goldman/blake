@@ -90,6 +90,7 @@ public class Program
         Console.WriteLine("                         --disableDefaultRenderers, -dr   Disable the built-in Bootstrap container renderers");
         Console.WriteLine("                         --includeDrafts                  Bakes markdown files that contain 'draft: true' in the frontmatter (they are skipped by default)");
         Console.WriteLine("                         --clean, -cl                     Deletes the .generated folder before re-generating site content");
+        Console.WriteLine("                         --continueOnError, -ce           Continues baking even if some pages fail to generate. By default, the process stops on the first error.");
         Console.WriteLine();
         Console.WriteLine("  new <PATH>           Generates a new Blake site");
         Console.WriteLine("                       Options:");
@@ -205,6 +206,7 @@ public class Program
             UseDefaultRenderers = !args.Contains("--disableDefaultRenderers") && !args.Contains("-dr"),
             IncludeDrafts       = args.Contains("--includeDrafts"),
             Clean               = args.Contains("--clean") || args.Contains("-cl"),
+            ContinueOnError     = args.Contains("--continueOnError") || args.Contains("-ce"),
             Arguments           = [.. args.Skip(1)]
         };
 
