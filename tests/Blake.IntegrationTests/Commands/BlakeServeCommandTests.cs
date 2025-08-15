@@ -137,7 +137,7 @@ This is a tip block that should not be styled with Bootstrap.
             Path.Combine(testDir, "Components", "TipContainer.razor"),
             @"<div>@ChildContent</div>
 @code {
-    [Parameter] public RenderFragment? ChildContent { get; set;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 }");
 
         FileSystemHelper.CreateRazorTemplate(
@@ -158,7 +158,7 @@ This is a tip block that should not be styled with Bootstrap.
         var generatedFile = Path.Combine(testDir, ".generated", "posts", "Post.razor");
         Assert.True(File.Exists(generatedFile), "Generated Razor file should exist after serving with options.");
         var generatedContent = await File.ReadAllTextAsync(generatedFile);
-        Assert.Contains("<TipContainer", generatedContent);
+        Assert.Contains("<TipContainer >", generatedContent);
         Assert.DoesNotContain("alert-secondary", generatedContent);
     }
 
