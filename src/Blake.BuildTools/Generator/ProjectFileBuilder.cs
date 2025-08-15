@@ -4,20 +4,20 @@ namespace Blake.BuildTools.Generator;
 
 public static class ProjectFileBuilder
 {
-    public static async Task<int> InitProjectFile(string projectFilePath, ILogger? logger)
+    public static async Task<int> InitProjectFile(string projectFilePath, ILogger logger, CancellationToken cancellationToken)
     {
-        var projectContent = await File.ReadAllTextAsync(projectFilePath);
+        var projectContent = await File.ReadAllTextAsync(projectFilePath, cancellationToken);
 
         if (!projectContent.Contains("<Project Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\">"))
         {
-            logger?.LogError("The specified project is not a Blazor WebAssembly app.");
+            logger.LogError("The specified project is not a Blazor WebAssembly app.");
             return 1;
         }
 
         // Check if the project already has Blake configured
         if (projectContent.Contains("<PackageReference Include=\"Blake.Types\""))
         {
-            logger?.LogInformation("Blake is already configured in this project.");
+            logger.LogInformation("Blake is already configured in this project.");
             return 0;
         }
 
@@ -32,7 +32,7 @@ public static class ProjectFileBuilder
             var itemGroupIndex = projectContent.LastIndexOf("</ItemGroup>", StringComparison.Ordinal);
             if (itemGroupIndex == -1)
             {
-                logger?.LogError("Project file does not contain a valid ItemGroup.");
+                logger.LogError("Project file does not contain a valid ItemGroup.");
                 return 1;
             }
 
@@ -49,7 +49,7 @@ public static class ProjectFileBuilder
         var projectEndIndex = projectContent.LastIndexOf("</Project>", StringComparison.Ordinal);
         if (projectEndIndex == -1)
         {
-            logger?.LogError("Project file does not end with </Project>.");
+            logger.LogError("Project file does not end with </Project>.");
             return 1;
         }
 
@@ -71,7 +71,7 @@ public static class ProjectFileBuilder
 
 
         // Write the updated content back to the project file
-        await File.WriteAllTextAsync(projectFilePath, projectContent);
+        await File.WriteAllTextAsync(projectFilePath, projectContent, cancellationToken);
 
         return 0;
     }

@@ -6,20 +6,26 @@ using Microsoft.Extensions.Logging;
 
 namespace Blake.CLI;
 
-public class Program : IDisposable
+public class Program
 {
-    private static CancellationTokenSource? _cancellationTokenSource;
-
     public static async Task<int> Main(string[] args)
     {
-        return await RunAsync(args);
+        using var cts = new CancellationTokenSource();
+
+        // Handle Ctrl+C gracefully
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true; // Don't terminate immediately
+            cts.Cancel(); // Signal cancellation
+        };
+
+        var logger = CreateLoggerFactory(args).CreateLogger<Program>();
+
+        return await RunAsync(args, logger, cts.Token);
     }
 
-    internal static async Task<int> RunAsync(string[] args, ILogger? logger = null)
+    internal static async Task<int> RunAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
     {
-        // Create a logger factory with the specified log level
-        logger ??= CreateLoggerFactory(args).CreateLogger<Program>();
-
         if (args.Length == 0)
         {
             await Console.Error.WriteLineAsync("Required argument missing.");
@@ -35,13 +41,13 @@ public class Program : IDisposable
                 ShowHelp();
                 return 0;
             case "init":
-                return await InitBlakeAsync(args, logger);
+                return await InitBlakeAsync(args, logger, cancellationToken);
             case "bake":
-                return await BakeBlakeAsync(args, logger);
+                return await BakeBlakeAsync(args, logger, cancellationToken);
             case "serve":
-                return await ServeBakeAsync(args, logger);
+                return await ServeBakeAsync(args, logger, cancellationToken);
             case "new":
-                return await NewSiteAsync(args, logger);
+                return await NewSiteAsync(args, logger, cancellationToken);
             default:
                 logger.LogError("Unknown option: {option}", option);
                 return 1;
@@ -99,7 +105,7 @@ public class Program : IDisposable
         Console.WriteLine("  --help               Show this help message.");
     }
     
-    private static async Task<int> InitBlakeAsync(string[] args, ILogger logger)
+    private static async Task<int> InitBlakeAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
     {
         // get target path or use current directory
         var targetPath = GetPathFromArgs(args);
@@ -146,16 +152,16 @@ public class Program : IDisposable
 
         var includeSampleContent = args.Contains("--includeSampleContent") || args.Contains("-s");
 
-        await SiteGenerator.InitAsync(projectFile, includeSampleContent, logger);
+        await SiteGenerator.InitAsync(projectFile, logger, cancellationToken, includeSampleContent);
 
         logger.LogInformation("✅ Blake initialized successfully in {targetPath}", targetPath);
 
         Console.WriteLine("Completed init, running Bake...");
 
-        return await BakeBlakeAsync(args, logger);
+        return await BakeBlakeAsync(args, logger, cancellationToken);
     }
 
-    private static async Task<int> BakeBlakeAsync(string[] args, ILogger logger)
+    private static async Task<int> BakeBlakeAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
     {
         string targetPath;
 
@@ -202,7 +208,7 @@ public class Program : IDisposable
 
         try
         {
-            await SiteGenerator.BuildAsync(options, logger);
+            await SiteGenerator.BuildAsync(options, logger, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -216,61 +222,82 @@ public class Program : IDisposable
         return 0;
     }
 
-    private static async Task<int> ServeBakeAsync(string[] args, ILogger logger)
+    private static async Task<int> ServeBakeAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
     {
         var path = args.Length > 1 ? args[1].Trim('"') : Directory.GetCurrentDirectory();
 
         Console.WriteLine($"🔧 Baking in: {path}");
-        var bakeResult = await BakeBlakeAsync(args, logger);
+        var bakeResult = await BakeBlakeAsync(args, logger, cancellationToken);
         if (bakeResult != 0) return bakeResult;
 
         Console.WriteLine("🚀 Running app...");
-        var psi = new ProcessStartInfo("dotnet", $"run --project \"{path}\"")
+
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo("dotnet", $"run --project \"{path}\"")
         {
             RedirectStandardOutput = false,
             RedirectStandardError = false,
-            UseShellExecute = true
+            UseShellExecute = false  // Changed for better control
         };
 
-        using var process = Process.Start(psi);
-
-        if (process == null)
+        if (!process.Start())
         {
             logger.LogError("Failed to start the process. Please check the configuration and try again.");
             return 1;
         }
 
-        _cancellationTokenSource = new CancellationTokenSource();
-
-        var waitTask = process.WaitForExitAsync();
-        var cancelTask = Task.Delay(Timeout.InfiniteTimeSpan, _cancellationTokenSource.Token);
-
-        var completed = await Task.WhenAny(waitTask, cancelTask);
-        if (completed != waitTask)
+        try
         {
-            TryGraceful(process);
-            if (!process.HasExited)
-                process.Kill(entireProcessTree: true);
-
-            // Catch if the process was killed or exited unexpectedly
-            try { await waitTask; } catch { /* ignore */ }
+            // Use the passed cancellation token directly
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            logger.LogDebug("Serve command cancelled, terminating dotnet run process...");
+            TerminateProcessGracefully(process, logger);
         }
 
         return 0;
     }
 
-    static void TryGraceful(Process proc)
+    private static void TerminateProcessGracefully(Process process, ILogger logger)
     {
-        // Optional gentle close on Windows if there is a windowed host
-        if (OperatingSystem.IsWindows())
+        if (process.HasExited) return;
+
+        logger.LogDebug("Attempting graceful shutdown of dotnet run process...");
+
+        try
         {
-            try { if (proc.CloseMainWindow()) return; } catch { /* ignore */ }
+            // Try graceful shutdown first
+            if (OperatingSystem.IsWindows())
+            {
+                if (process.CloseMainWindow())
+                {
+                    if (process.WaitForExit(3000)) // Wait up to 3 seconds
+                        return;
+                }
+            }
+            else
+            {
+                // On Unix, send SIGTERM first
+                process.Kill(entireProcessTree: false);
+                if (process.WaitForExit(3000)) // Wait up to 3 seconds
+                    return;
+            }
+
+            // Force kill if graceful shutdown didn't work
+            logger.LogDebug("Graceful shutdown failed, force killing process tree...");
+            process.Kill(entireProcessTree: true);
+
         }
-        // On Unix you could send SIGTERM if you manage process groups.
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Error during process shutdown");
+        }
     }
 
 
-    private static async Task<int> NewSiteAsync(string[] args, ILogger logger)
+    private static async Task<int> NewSiteAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
     {
         Console.WriteLine();
 
@@ -278,7 +305,7 @@ public class Program : IDisposable
         
         if (args[1] == "--list")
         {
-            var templates = await templateService.GetTemplatesAsync();
+            var templates = await templateService.GetTemplatesAsync(cancellationToken);
             
             var templateList = templates.OrderBy(t => t.Name).ToList() ?? new List<SiteTemplate>();
             
@@ -350,7 +377,7 @@ public class Program : IDisposable
                 return 1;
             }
 
-            result = await templateService.CloneTemplateAsync(newSiteName, directory, repoUrl: url);
+            result = await templateService.CloneTemplateAsync(newSiteName, logger, cancellationToken, directory, repoUrl: url);
         }
         else
         {
@@ -360,7 +387,7 @@ public class Program : IDisposable
             {
                 // get the template name
                 templateName = argList[templateFlagArg + 1];
-                result = await templateService.CloneTemplateAsync(templateName, directory);
+                result = await templateService.CloneTemplateAsync(templateName, logger, cancellationToken, directory);
             }
             else
             {
@@ -382,17 +409,17 @@ public class Program : IDisposable
                 
                 var processResult = process.Start();
                 
-                await process.WaitForExitAsync();
+                await process.WaitForExitAsync(cancellationToken);
 
                 if (process.ExitCode == 0)
                 {
                     var fileName = Path.Combine(directory, $"{newSiteName}.csproj");
-                    var initResult = await SiteGenerator.InitAsync(fileName, true, logger);
+                    var initResult = await SiteGenerator.InitAsync(fileName, logger, cancellationToken, true);
 
                     if (initResult == 0)
                     {
                         logger.LogInformation("✅ New site {newSiteName} created successfully.", newSiteName);
-                        return await BakeBlakeAsync([string.Empty, fileName], logger); // ensure path is second argument
+                        return await BakeBlakeAsync([string.Empty, fileName], logger, cancellationToken); // ensure path is second argument
                     }
                     else
                     {
@@ -410,7 +437,7 @@ public class Program : IDisposable
             return result;
         }
 
-        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName, directory, logger);
+        var newResult = await SiteGenerator.NewSiteAsync(newSiteName, templateName, directory, logger, cancellationToken);
 
         if (newResult != 0)
         {
@@ -422,7 +449,7 @@ public class Program : IDisposable
             logger.LogInformation("✅ New site {newSiteName} created successfully.", newSiteName);
         }
 
-        return await BakeBlakeAsync(args, logger);
+        return await BakeBlakeAsync(args, logger, cancellationToken);
     }
 
     private static string GetPathFromArgs(string[] args)
@@ -438,12 +465,5 @@ public class Program : IDisposable
         }
 
         return Directory.GetCurrentDirectory();
-    }
-
-    public void Dispose()
-    {
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

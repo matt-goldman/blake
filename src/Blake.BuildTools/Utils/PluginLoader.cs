@@ -21,7 +21,7 @@ internal static class PluginLoader
 
         if (csprojFile == null)
         {
-            logger?.LogWarning("No .csproj file found in the specified directory.");
+            logger.LogWarning("No .csproj file found in the specified directory.");
             return plugins;
         }
 
@@ -32,7 +32,7 @@ internal static class PluginLoader
         }
         catch (Exception ex)
         {
-            logger?.LogError("Error loading .csproj file: {message}, {error}", ex.Message, ex);
+            logger.LogError("Error loading .csproj file: {message}, {error}", ex.Message, ex);
             return plugins;
         }
 
@@ -59,9 +59,9 @@ internal static class PluginLoader
 
         if (process.ExitCode != 0)
         {
-            logger?.LogError("dotnet restore failed with exit code {exitCode}.", process.ExitCode);
-            logger?.LogDebug(process.StandardOutput.ReadToEnd());
-            logger?.LogError(process.StandardError.ReadToEnd());
+            logger.LogError("dotnet restore failed with exit code {exitCode}.", process.ExitCode);
+            logger.LogDebug(process.StandardOutput.ReadToEnd());
+            logger.LogError(process.StandardError.ReadToEnd());
             return plugins;
         }
 
@@ -104,12 +104,12 @@ internal static class PluginLoader
 
         if (pluginFiles.Count > 0)
         {
-            logger?.LogInformation("Found {pluginCount} NuGet plugins in the .csproj file.", pluginFiles.Count);
+            logger.LogInformation("Found {pluginCount} NuGet plugins in the .csproj file.", pluginFiles.Count);
             LoadPluginDLLs(pluginFiles, plugins, logger);
         }
         else
         {
-            logger?.LogInformation("No NuGet plugins found in the .csproj file.");
+            logger.LogInformation("No NuGet plugins found in the .csproj file.");
         }
     }
 
@@ -145,7 +145,7 @@ internal static class PluginLoader
 
                 if (result?.ExitCode != 0)
                 {
-                    logger?.LogError("Failed to build {pluginProject}", pluginProject);
+                    logger.LogError("Failed to build {pluginProject}", pluginProject);
                     continue;
                 }
 
@@ -157,17 +157,17 @@ internal static class PluginLoader
 
             if (dllFilePaths.Count > 0)
             {
-                logger?.LogInformation("Found {dllFilePathsCount} project references in the .csproj file.", dllFilePaths.Count);
+                logger.LogInformation("Found {dllFilePathsCount} project references in the .csproj file.", dllFilePaths.Count);
                 LoadPluginDLLs(dllFilePaths, plugins, logger);
             }
             else
             {
-                logger?.LogDebug("No project references found in the .csproj file.");
+                logger.LogDebug("No project references found in the .csproj file.");
             }
         }
         else
         {
-            logger?.LogDebug("No project references found in the .csproj file.");
+            logger.LogDebug("No project references found in the .csproj file.");
         }
     }
 
@@ -177,7 +177,7 @@ internal static class PluginLoader
         {
             if (!File.Exists(file))
             {
-                logger?.LogError("Plugin file {file} does not exist.", file);
+                logger.LogError("Plugin file {file} does not exist.", file);
                 continue;
             }
 
@@ -202,8 +202,8 @@ internal static class PluginLoader
             }
             catch (Exception ex)
             {
-                logger?.LogError("Error loading plugin from {file}: {message}", file, ex.Message);
-                logger?.LogDebug(ex, "Full error details for plugin {file}", file);
+                logger.LogError("Error loading plugin from {file}: {message}", file, ex.Message);
+                logger.LogDebug(ex, "Full error details for plugin {file}", file);
             }
         }
     }

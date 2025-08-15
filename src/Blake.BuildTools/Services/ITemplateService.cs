@@ -4,10 +4,10 @@ namespace Blake.BuildTools.Services;
 
 public interface ITemplateService
 {
-    Task<IEnumerable<SiteTemplate>> GetTemplatesAsync();
+    Task<IEnumerable<SiteTemplate>> GetTemplatesAsync(CancellationToken cancellationToken);
     
-    Task<SiteTemplate?> GetTemplateAsync(Guid id);
-    Task<SiteTemplate?> GetTemplateAsync(string name);
+    Task<SiteTemplate?> GetTemplateAsync(Guid id, CancellationToken cancellationToken);
+    Task<SiteTemplate?> GetTemplateAsync(string name, CancellationToken cancellationToken);
 
-    Task<int> CloneTemplateAsync(string name, string? destinationPath = null, Guid? templateId = null, string? repoUrl = null, ILogger? logger = null);
+    Task<int> CloneTemplateAsync(string name, ILogger logger, CancellationToken cancellationToken, string? destinationPath = null, Guid? templateId = null, string? repoUrl = null);
 }

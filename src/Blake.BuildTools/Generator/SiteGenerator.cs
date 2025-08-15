@@ -8,7 +8,7 @@ namespace Blake.BuildTools.Generator;
 
 internal static class SiteGenerator
 {
-    public static async Task BuildAsync(GenerationOptions? options = null, ILogger? logger = null)
+    public static async Task BuildAsync(GenerationOptions options, ILogger logger, CancellationToken cancellationToken)
     {
         options ??= new GenerationOptions
         {
@@ -16,30 +16,30 @@ internal static class SiteGenerator
             OutputPath = Path.Combine(Directory.GetCurrentDirectory(), ".generated"),
         };
 
-        logger?.LogInformation("🔧 Building site from project path: {OptionsProjectPath}", options.ProjectPath);
-        logger?.LogInformation("📂 Output path: {OptionsOutputPath}", options.OutputPath);
-        logger?.LogInformation("🔎 Scanning content folders...");
+        logger.LogInformation("🔧 Building site from project path: {OptionsProjectPath}", options.ProjectPath);
+        logger.LogInformation("📂 Output path: {OptionsOutputPath}", options.OutputPath);
+        logger.LogInformation("🔎 Scanning content folders...");
 
         // iterate through all folders in the project path, find template.razor files
         if (!Directory.Exists(options.ProjectPath))
         {
-            logger?.LogError("Error: Project path '{OptionsProjectPath}' does not exist.", options.ProjectPath);
+            logger.LogError("Error: Project path '{OptionsProjectPath}' does not exist.", options.ProjectPath);
             return;
         }
 
         if (options.Clean && Directory.Exists(options.OutputPath))
         {
-            logger?.LogInformation("🧹 Cleaning output directory: {OptionsOutputPath}", options.OutputPath);
+            logger.LogInformation("🧹 Cleaning output directory: {OptionsOutputPath}", options.OutputPath);
             Directory.Delete(options.OutputPath, true);
         }
 
         if (!Directory.Exists(options.OutputPath))
         {
             Directory.CreateDirectory(options.OutputPath);
-            logger?.LogInformation("✅ Created output directory: {OptionsOutputPath}", options.OutputPath);
+            logger.LogInformation("✅ Created output directory: {OptionsOutputPath}", options.OutputPath);
         }
 
-        var context = await GetBlakeContext(options);
+        var context = await GetBlakeContext(options, logger, cancellationToken);
 
         var config = GetConfiguration(options.Arguments);
 
@@ -49,26 +49,26 @@ internal static class SiteGenerator
         // Run BeforeBakeAsync for each plugin
         if (plugins.Count > 0)
         {
-            logger?.LogDebug("🔌 Loaded {PluginsCount} plugin(s)", plugins.Count);
+            logger.LogDebug("🔌 Loaded {PluginsCount} plugin(s)", plugins.Count);
             foreach (var plugin in plugins)
             {
                 try
                 {
-                    logger?.LogDebug("🔌 Running BeforeBakeAsync for plugin '{PluginPluginName}'", plugin.PluginName);
+                    logger.LogDebug("🔌 Running BeforeBakeAsync for plugin '{PluginPluginName}'", plugin.PluginName);
                     await plugin.Plugin.BeforeBakeAsync(context, logger);
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogWarning("⚠️  Error in plugin '{PluginPluginName}': {ExMessage}", plugin.PluginName, ex.Message);
+                    logger.LogWarning("⚠️  Error in plugin '{PluginPluginName}': {ExMessage}", plugin.PluginName, ex.Message);
                 }
             }
         }
         else
         {
-            logger?.LogDebug("No plugins loaded.");
+            logger.LogDebug("No plugins loaded.");
         }
 
-        await BakeContent(context, options, logger);
+        await BakeContent(context, options, logger, cancellationToken);
 
         // Run AfterBakeAsync for each plugin
         if (plugins.Count > 0)
@@ -77,12 +77,12 @@ internal static class SiteGenerator
             {
                 try
                 {
-                    logger?.LogDebug("🔌 Running AfterBakeAsync for plugin '{PluginPluginName}'", plugin.PluginName);
+                    logger.LogDebug("🔌 Running AfterBakeAsync for plugin '{PluginPluginName}'", plugin.PluginName);
                     await plugin.Plugin.AfterBakeAsync(context, logger);
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogWarning("⚠️  Error in plugin '{PluginPluginName}': {ExMessage}", plugin.PluginName, ex.Message);
+                    logger.LogWarning("⚠️  Error in plugin '{PluginPluginName}': {ExMessage}", plugin.PluginName, ex.Message);
                 }
             }
         }
@@ -93,26 +93,26 @@ internal static class SiteGenerator
             try
             {
                 await File.WriteAllTextAsync(generatedPage.OutputPath, generatedPage.RazorHtml);
-                logger?.LogDebug("✅ Successfully wrote page: {GeneratedPageOutputPath}", generatedPage.OutputPath);
+                logger.LogDebug("✅ Successfully wrote page: {GeneratedPageOutputPath}", generatedPage.OutputPath);
             }
             catch (Exception ex)
             {
-                logger?.LogWarning("⚠️  Error writing page '{PageSlug}': {ExMessage}", generatedPage.Page.Slug, ex.Message);
+                logger.LogWarning("⚠️  Error writing page '{PageSlug}': {ExMessage}", generatedPage.Page.Slug, ex.Message);
             }
         }
 
         // Write content index
         ContentIndexBuilder.WriteIndex(options.OutputPath, [.. context.GeneratedPages.Select(gp => gp.Page)]);
-        logger?.LogDebug("✅ Generated content index in {OptionsOutputPath}", options.OutputPath);
+        logger.LogDebug("✅ Generated content index in {OptionsOutputPath}", options.OutputPath);
     }
 
-    public static async Task<int> InitAsync(string projectFile, bool? includeSampleContent = false, ILogger? logger = null)
+    public static async Task<int> InitAsync(string projectFile, ILogger logger, CancellationToken cancellationToken, bool? includeSampleContent = false)
     {
-        var csprojResult = await ProjectFileBuilder.InitProjectFile(projectFile, logger);
+        var csprojResult = await ProjectFileBuilder.InitProjectFile(projectFile, logger, cancellationToken);
 
         if (csprojResult != 0)
         {
-            logger?.LogError("Failed to initialize Blake in the project. Please check the project file.");
+            logger.LogError("Failed to initialize Blake in the project. Please check the project file.");
             return csprojResult;
         }
 
@@ -131,7 +131,7 @@ internal static class SiteGenerator
         }
         else
         {
-            var importsContent = await File.ReadAllTextAsync(importsPath);
+            var importsContent = await File.ReadAllTextAsync(importsPath, cancellationToken);
             if (!importsContent.Contains("@using Blake.Types"))
             {
                 var blakeImports = $"@using Blake.Types\n@using Blake.Generated\n";
@@ -143,18 +143,18 @@ internal static class SiteGenerator
                     blakeImports += $"@using {projectComponentsNamespace}\n";
                 }
 
-                await File.AppendAllTextAsync(importsPath, blakeImports);
+                await File.AppendAllTextAsync(importsPath, blakeImports, cancellationToken);
             }
         }
 
         // Add sample content to the Pages folder
         if (includeSampleContent == true)
         {
-            logger?.LogInformation("📝 Adding sample content to the project...");
-            await SampleContentBuilder.InitSampleContent(projectFile, logger);
+            logger.LogInformation("📝 Adding sample content to the project...");
+            await SampleContentBuilder.InitSampleContent(projectFile, logger, cancellationToken);
             if (!importsUpdated)
             {
-                logger?.LogWarning("⚠️  _Imports.razor was not found or updated. Sample content may not work as expected.");
+                logger.LogWarning("⚠️  _Imports.razor was not found or updated. Sample content may not work as expected.");
             }
         }
 
@@ -168,7 +168,7 @@ internal static class SiteGenerator
         return 0;
     }
 
-    public static async Task<int> NewSiteAsync(string newSiteName, string name, string? path = null, ILogger? logger = null)
+    public static async Task<int> NewSiteAsync(string newSiteName, string name, string path, ILogger logger, CancellationToken cancellationToken)
     {
         // Initialize the new site
         // find the csproj file in the cloned directory
@@ -178,7 +178,7 @@ internal static class SiteGenerator
 
         if (templateCsprojPath == null)
         {
-            logger?.LogError("Template Error: No .csproj file found in the cloned template directory.");
+            logger.LogError("Template Error: No .csproj file found in the cloned template directory.");
             return -1;
         }
 
@@ -186,7 +186,7 @@ internal static class SiteGenerator
         var newCsprojPath = Path.Combine(Path.GetDirectoryName(templateCsprojPath) ?? string.Empty, $"{newSiteName}.csproj");
         if (File.Exists(newCsprojPath))
         {
-            logger?.LogWarning("⚠️  A project file with the name '{NewSiteName}.csproj' already exists. It will be overwritten.", newSiteName);
+            logger.LogWarning("⚠️  A project file with the name '{NewSiteName}.csproj' already exists. It will be overwritten.", newSiteName);
             File.Delete(newCsprojPath);
         }
 
@@ -200,16 +200,16 @@ internal static class SiteGenerator
         var fileList = Directory.GetFiles(newSiteDirectory, "*", SearchOption.AllDirectories);
         foreach (var file in fileList)
         {
-            var fileContents = await File.ReadAllTextAsync(file);
+            var fileContents = await File.ReadAllTextAsync(file, cancellationToken);
 
             if (!fileContents.Contains(templatePlaceholder)) continue;
 
             fileContents = fileContents.Replace(templatePlaceholder, templatePlaceholderName);
 
-            await File.WriteAllTextAsync(file, fileContents);
+            await File.WriteAllTextAsync(file, fileContents, cancellationToken);
         }
 
-        logger?.LogInformation("✅ Template {name} created as '{newSiteName}'.", name, newSiteName);
+        logger.LogInformation("✅ Template {name} created as '{newSiteName}'.", name, newSiteName);
         return 0;
     }
 
@@ -232,7 +232,7 @@ internal static class SiteGenerator
         return "Debug"; // default fallback
     }
 
-    private static async Task<BlakeContext> GetBlakeContext(GenerationOptions options, ILogger? logger = null)
+    private static async Task<BlakeContext> GetBlakeContext(GenerationOptions options, ILogger logger, CancellationToken cancellationToken)
     {
         var context = new BlakeContext
         {
@@ -267,11 +267,11 @@ internal static class SiteGenerator
 
             var slug = $"/{Path.GetFileName(folder).ToLowerInvariant()}/{fileName.ToLowerInvariant()}";
 
-            var mdContent = await File.ReadAllTextAsync(mapping.Key);
+            var mdContent = await File.ReadAllTextAsync(mapping.Key, cancellationToken);
 
             if (string.IsNullOrWhiteSpace(mdContent))
             {
-                logger?.LogWarning("⚠️  Skipping empty markdown file: {FileName} in {Folder}", fileName, folder);
+                logger.LogWarning("⚠️  Skipping empty markdown file: {FileName} in {Folder}", fileName, folder);
                 continue;
             }
 
@@ -281,7 +281,7 @@ internal static class SiteGenerator
         return context;
     }
 
-    private static async Task BakeContent(BlakeContext context, GenerationOptions options, ILogger? logger = null)
+    private static async Task BakeContent(BlakeContext context, GenerationOptions options, ILogger logger, CancellationToken cancellationToken)
     {
         // Bake: Process each markdown file and generate Razor pages
         var mdPipeline = context.PipelineBuilder.Build();
@@ -303,7 +303,7 @@ internal static class SiteGenerator
 
             if (page.Draft && !options.IncludeDrafts)
             {
-                logger?.LogInformation("⚠️  Skipping draft page: {FileName} in {Folder}", fileName, folder);
+                logger.LogInformation("⚠️  Skipping draft page: {FileName} in {Folder}", fileName, folder);
                 continue;
             }
 
@@ -332,7 +332,7 @@ internal static class SiteGenerator
 
             var outputPath = Path.Combine(outputDir, $"{outputFileName}.razor");
 
-            logger?.LogInformation("✅ Generated page: {OutputPath}", outputPath);
+            logger.LogInformation("✅ Generated page: {OutputPath}", outputPath);
 
             context.GeneratedPages.Add(new GeneratedPage(page, outputPath, generatedRazor));
         }
@@ -351,7 +351,7 @@ internal static class SiteGenerator
             var fullFolderPath = Path.Combine(rootPath, folder);
             if (!Directory.Exists(fullFolderPath))
             {
-                logger?.LogDebug("⚠️  Skipping missing folder: {Folder}", folder);
+                logger.LogDebug("⚠️  Skipping missing folder: {Folder}", folder);
                 continue;
             }
 
@@ -360,7 +360,7 @@ internal static class SiteGenerator
 
             if (File.Exists(localCascadingTemplatePath) && File.Exists(localTemplatePath))
             {
-                logger?.LogWarning("⚠️  Folder {FullFolderPath} contains both local and cascading templates. Skipping.", fullFolderPath);
+                logger.LogWarning("⚠️  Folder {FullFolderPath} contains both local and cascading templates. Skipping.", fullFolderPath);
                 continue;
             }
 
@@ -369,7 +369,7 @@ internal static class SiteGenerator
             var templatePath = File.Exists(localTemplatePath) ? localTemplatePath : cascadingPath;
             if (string.IsNullOrEmpty(templatePath))
             {
-                logger?.LogDebug("⚠️  No template.razor found in {Folder}, skipping.", folder);
+                logger.LogDebug("⚠️  No template.razor found in {Folder}, skipping.", folder);
                 continue;
             }
 
@@ -377,11 +377,11 @@ internal static class SiteGenerator
 
             if (markdownFiles.Length == 0)
             {
-                logger?.LogDebug("⚠️  No markdown files found in {Folder}. Continuing to process child folders if any.", folder);
+                logger.LogDebug("⚠️  No markdown files found in {Folder}. Continuing to process child folders if any.", folder);
             }
             else
             {
-                logger?.LogDebug("📄 Mapping templates for {MarkdownFilesCount} markdown file(s) in {Folder}", markdownFiles.Length, folder);
+                logger.LogDebug("📄 Mapping templates for {MarkdownFilesCount} markdown file(s) in {Folder}", markdownFiles.Length, folder);
                 foreach (var mdPath in markdownFiles)
                 {
                     templateMappings.Add(mdPath, templatePath);
