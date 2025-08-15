@@ -148,6 +148,17 @@ This is a tip block that should not be styled with Bootstrap.
         );
 
         // Act - Test with disable default renderers flag
+
+        // Initialize the Blazor app
+        var csprojPath = Path.Combine(testDir, "OptionsTest.csproj");
+        var initResult = await RunBlakeCommandAsync(["init", csprojPath]);
+
+        // fail early if init failed
+        if (initResult.ExitCode != 0)
+        {
+            throw new Exception($"Failed to initialize Blake project: {string.Join(Environment.NewLine, initResult.ErrorText)}");
+        }
+
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var result = await RunBlakeCommandAsync(["serve", testDir, "--disableDefaultRenderers"], cts.Token);
 
