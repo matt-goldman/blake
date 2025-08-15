@@ -177,6 +177,8 @@ public class Program
             return 1;
         }
 
+        logger.LogInformation("Baking Blake site in: {targetPath}", targetPath);
+
         // Build context expects a directory, not a .csproj file
         if (Path.GetExtension(targetPath).Equals(".csproj", StringComparison.OrdinalIgnoreCase))
         {
