@@ -247,15 +247,7 @@ internal static class SiteGenerator
                 .SetupContainerRenderers(options.UseDefaultRenderers, useRazorContainers: true)
         };
 
-        var folders = Directory.GetDirectories(options.ProjectPath, "*", SearchOption.AllDirectories)
-            .Select(Path.GetFileName)
-            .Where(folder =>
-                folder != null &&
-                !folder.StartsWith('.') &&
-                !folder.Equals("obj", StringComparison.OrdinalIgnoreCase) &&
-                !folder.Equals("bin", StringComparison.OrdinalIgnoreCase))
-            .Select(f => f!)
-            .ToList();
+        var folders = GetAllFolders(options.ProjectPath);
 
         var templateMappings = MapTemplates(folders, options.ProjectPath, null, logger);
 
@@ -366,7 +358,7 @@ internal static class SiteGenerator
         IEnumerable<string> folders,
         string rootPath,
         string? cascadingTemplatePath,
-        ILogger? logger = null)
+        ILogger logger)
     {
         Dictionary<string, string> templateMappings = [];
 
@@ -412,20 +404,12 @@ internal static class SiteGenerator
                 }
             }
 
-            var children = Directory.GetDirectories(fullFolderPath)
-                .Select(Path.GetFileName)
-                .Where(child =>
-                    child != null &&
-                    !child.StartsWith('.') &&
-                    !child.Equals("obj", StringComparison.OrdinalIgnoreCase) &&
-                    !child.Equals("bin", StringComparison.OrdinalIgnoreCase))
-                .Select(child => child!)
-                .ToList();
-
+            var children = GetAllFolders(fullFolderPath);
+            
             if (children.Count == 0) continue;
-
+            
             var childMappings = MapTemplates(children, fullFolderPath, cascadingPath, logger);
-
+            
             foreach (var child in childMappings)
             {
                 templateMappings.Add(child.Key, child.Value);
@@ -433,5 +417,22 @@ internal static class SiteGenerator
         }
 
         return templateMappings;
+    }
+    
+    private static List<string> GetAllFolders(string rootPath)
+    {
+        var children = Directory.GetDirectories(rootPath, "*", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileName)
+            .Where(child =>
+                child != null &&
+                !child.StartsWith('.') &&
+                !child.Equals("obj", StringComparison.OrdinalIgnoreCase) &&
+                !child.Equals("bin", StringComparison.OrdinalIgnoreCase) &&
+                !child.Equals("wwwroot", StringComparison.OrdinalIgnoreCase) &&
+                !child.Equals("node_modules", StringComparison.OrdinalIgnoreCase))
+            .Select(child => child!)
+            .ToList();
+
+        return children;
     }
 }
