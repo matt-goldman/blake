@@ -358,7 +358,7 @@ internal static class SiteGenerator
         IEnumerable<string> folders,
         string rootPath,
         string? cascadingTemplatePath,
-        ILogger logger)
+        ILogger? logger)
     {
         Dictionary<string, string> templateMappings = [];
 
