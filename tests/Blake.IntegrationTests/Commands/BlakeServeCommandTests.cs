@@ -143,6 +143,7 @@ This is a tip block that should not be styled with Bootstrap.
         FileSystemHelper.CreateRazorTemplate(
             Path.Combine(testDir, "Posts", "template.razor"),
             @"@page ""/posts/{Slug}""
+@using OptionsTest.Components
 <h1>@Title</h1>
 <div>@Body</div>"
         );
