@@ -15,8 +15,6 @@ internal static class SiteGenerator
             ProjectPath = Directory.GetCurrentDirectory(),
             OutputPath = Path.Combine(Directory.GetCurrentDirectory(), ".generated"),
         };
-        
-        var continueOnError = options.Arguments.Contains("--continueOnError") || options.Arguments.Contains("-ce");
 
         logger.LogInformation("🔧 Building site from project path: {OptionsProjectPath}", options.ProjectPath);
         logger.LogInformation("📂 Output path: {OptionsOutputPath}", options.OutputPath);
@@ -70,7 +68,7 @@ internal static class SiteGenerator
             logger.LogDebug("No plugins loaded.");
         }
 
-        await BakeContent(context, options, continueOnError, logger, cancellationToken);
+        await BakeContent(context, options, logger, cancellationToken);
 
         // Run AfterBakeAsync for each plugin
         if (plugins.Count > 0)
@@ -104,7 +102,7 @@ internal static class SiteGenerator
         }
 
         // Write content index
-        ContentIndexBuilder.WriteIndex(options.OutputPath, [.. context.GeneratedPages.Select(gp => gp.Page)], continueOnError, logger);
+        ContentIndexBuilder.WriteIndex(options.OutputPath, [.. context.GeneratedPages.Select(gp => gp.Page)], options.ContinueOnError, logger);
         logger.LogDebug("✅ Generated content index in {OptionsOutputPath}", options.OutputPath);
     }
 
@@ -286,7 +284,6 @@ internal static class SiteGenerator
     private static async Task BakeContent(
         BlakeContext context,
         GenerationOptions options,
-        bool continueOnError,
         ILogger logger,
         CancellationToken cancellationToken)
     {
@@ -353,7 +350,7 @@ internal static class SiteGenerator
             catch (Exception e)
             {
                 logger.LogError(e, "❌ Error processing markdown file: {MdPath}", mdPage.MdPath);
-                if (continueOnError)
+                if (options.ContinueOnError)
                 {
                     logger.LogWarning("⚠️  Continuing to process other markdown files despite the error.");
                 }

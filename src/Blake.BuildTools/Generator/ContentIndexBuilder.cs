@@ -18,8 +18,6 @@ public static class ContentIndexBuilder
 
         foreach (var page in allPages)
         {
-            var tags = page.Tags ?? [];
-            
             try
             {
                 sb.AppendLine("        new PageModel");
@@ -33,10 +31,10 @@ public static class ContentIndexBuilder
                         $"            Date = new DateTime({page.Date.Value.Year}, {page.Date.Value.Month}, {page.Date.Value.Day}),");
                 sb.AppendLine($"            Draft = {page.Draft.ToString().ToLowerInvariant()},");
                 sb.AppendLine($"            IconIdentifier = @\"{page.IconIdentifier}\",");
-                if (tags.Count > 0)
+                if (page.Tags.Count > 0)
                 {
                     sb.AppendLine(
-                        $"            Tags = new List<string> {{ {string.Join(", ", tags.Select(t => $"\"{t}\""))} }},");
+                        $"            Tags = new List<string> {{ {string.Join(", ", page.Tags.Select(t => $"\"{t}\""))} }},");
                 }
                 else
                 {

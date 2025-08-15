@@ -12,5 +12,7 @@ internal class GenerationOptions
 
     public bool Clean { get; init; } = false;
 
+    public bool ContinueOnError { get; init; } = false;
+
     public string[] Arguments { get; init; } = [];
 }

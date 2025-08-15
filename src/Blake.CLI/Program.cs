@@ -206,6 +206,7 @@ public class Program
             UseDefaultRenderers = !args.Contains("--disableDefaultRenderers") && !args.Contains("-dr"),
             IncludeDrafts       = args.Contains("--includeDrafts"),
             Clean               = args.Contains("--clean") || args.Contains("-cl"),
+            ContinueOnError     = args.Contains("--continueOnError") || args.Contains("-ce"),
             Arguments           = [.. args.Skip(1)]
         };
 
