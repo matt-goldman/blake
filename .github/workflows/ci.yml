@@ -53,14 +53,19 @@ jobs:
             echo "BUMP=patch" >> $GITHUB_ENV
           fi
 
-          # Set NORELEASE as output of this step
-          echo "NORELEASE=${{ env.NORELEASE }}" >> $GITHUB_ENV
+          # Set NORELEASE
+          if [[ "$LABELS" == *"norelease"* ]]; then
+            echo "NORELEASE=true" >> $GITHUB_ENV
+          else
+            echo "NORELEASE=false" >> $GITHUB_ENV
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
       - name: GitHub Tag Bump
         id: tag_bump
+        if: env.NORELEASE != 'true'
         uses: anothrNick/github-tag-action@1.73.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,7 +76,7 @@ jobs:
 
     outputs:
       new_version: ${{ steps.tag_bump.outputs.new_tag }}
-      norelease: ${{ steps.tag_bump.outputs.norelease }}
+      norelease: ${{ env.NORELEASE }}
 
 
   publish-types:
