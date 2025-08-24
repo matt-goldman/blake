@@ -179,10 +179,15 @@ internal static class PluginLoader
                 plugin.PackageName, plugin.Version, fileVersion);
             return false;
         }
+        catch (NotSupportedException ex)
+        {
+            logger?.LogWarning(ex, "File format not supported when checking version for NuGet plugin: {dllPath}. Assuming valid.", plugin.DllPath);
+            return true; // Assume valid if file format is not supported
+        }
         catch (Exception ex)
         {
-            logger?.LogDebug(ex, "Error checking version for NuGet plugin: {dllPath}", plugin.DllPath);
-            return false; // Assume invalid if we can't check version
+            logger?.LogError(ex, "Unexpected error checking version for NuGet plugin: {dllPath}. Assuming invalid.", plugin.DllPath);
+            return false; // Assume invalid for other exceptions
         }
     }
 
