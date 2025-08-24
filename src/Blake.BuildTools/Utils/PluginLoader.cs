@@ -169,10 +169,46 @@ internal static class PluginLoader
             }
 
             // For NuGet packages, the file version should match the package version
-            // Some packages may have different versioning schemes, so we'll be lenient
-            if (fileVersion.StartsWith(plugin.Version))
+            // Compare versions component-wise for leniency, but avoid false positives
+            if (Version.TryParse(plugin.Version, out var expectedVersion) && Version.TryParse(fileVersion, out var actualVersion))
             {
-                return true;
+                // Compare only as many components as are present in plugin.Version
+                bool matches = true;
+                if (expectedVersion.Major != actualVersion.Major) matches = false;
+                if (expectedVersion.Minor != -1 && expectedVersion.Minor != actualVersion.Minor) matches = false;
+                
+                // Handle Build component: if expected doesn't specify Build (=-1), actual should be 0 or -1
+                if (expectedVersion.Build == -1)
+                {
+                    if (actualVersion.Build != 0 && actualVersion.Build != -1) matches = false;
+                }
+                else
+                {
+                    if (expectedVersion.Build != actualVersion.Build) matches = false;
+                }
+                
+                // Handle Revision component: if expected doesn't specify Revision (=-1), actual should be 0 or -1
+                if (expectedVersion.Revision == -1)
+                {
+                    if (actualVersion.Revision != 0 && actualVersion.Revision != -1) matches = false;
+                }
+                else
+                {
+                    if (expectedVersion.Revision != actualVersion.Revision) matches = false;
+                }
+                
+                if (matches)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                // Fallback: exact string match
+                if (fileVersion == plugin.Version)
+                {
+                    return true;
+                }
             }
 
             logger?.LogDebug("Version mismatch for NuGet plugin {packageName}: expected {expectedVersion}, found {actualVersion}", 
