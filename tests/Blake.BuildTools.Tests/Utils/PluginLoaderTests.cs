@@ -1,5 +1,6 @@
 using Blake.BuildTools.Utils;
 using Microsoft.Extensions.Logging;
+using System.Xml.Linq;
 using Xunit;
 
 namespace Blake.BuildTools.Tests.Utils;
@@ -95,6 +96,112 @@ public class PluginLoaderTests
         
         // Ensure no errors were logged
         Assert.Empty(logger.ErrorMessages);
+    }
+
+    [Fact]
+    public void GetNuGetPluginInfo_WithValidPackages_ReturnsCorrectInfo()
+    {
+        // Arrange
+        var xml = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""BlakePlugin.ReadTime"" Version=""1.0.0"" />
+    <PackageReference Include=""BlakePlugin.DocsRenderer"" Version=""2.1.0"" />
+    <PackageReference Include=""SomeOtherPackage"" Version=""1.0.0"" />
+  </ItemGroup>
+</Project>";
+        var doc = XDocument.Parse(xml);
+
+        // Act
+        var result = (List<NuGetPluginInfo>)typeof(PluginLoader)
+            .GetMethod("GetNuGetPluginInfo", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .Invoke(null, new object[] { doc })!;
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, p => p.PackageName == "BlakePlugin.ReadTime" && p.Version == "1.0.0");
+        Assert.Contains(result, p => p.PackageName == "BlakePlugin.DocsRenderer" && p.Version == "2.1.0");
+        Assert.DoesNotContain(result, p => p.PackageName == "SomeOtherPackage");
+    }
+
+    [Fact]
+    public void GetProjectRefPluginInfo_WithValidProjectRefs_ReturnsCorrectInfo()
+    {
+        // Arrange
+        var xml = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include=""../BlakePlugin.Custom/BlakePlugin.Custom.csproj"" />
+    <ProjectReference Include=""../SomeOtherProject/SomeOtherProject.csproj"" />
+  </ItemGroup>
+</Project>";
+        var doc = XDocument.Parse(xml);
+        var projectDirectory = "/test/project";
+
+        // Act
+        var result = (List<ProjectRefPluginInfo>)typeof(PluginLoader)
+            .GetMethod("GetProjectRefPluginInfo", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .Invoke(null, new object[] { doc, projectDirectory, "Debug" })!;
+
+        // Assert
+        Assert.Single(result);
+        Assert.Contains(result, p => p.ProjectPath.Contains("BlakePlugin.Custom"));
+        Assert.DoesNotContain(result, p => p.ProjectPath.Contains("SomeOtherProject"));
+    }
+
+    [Fact]
+    public void IsNuGetPluginValid_WithExistingValidDll_ReturnsTrue()
+    {
+        // Arrange
+        var logger = new TestLogger();
+        
+        // Create a temporary DLL file for testing
+        var tempDir = Path.GetTempPath();
+        var tempFile = Path.Combine(tempDir, "TestPlugin.dll");
+        File.WriteAllText(tempFile, "fake dll content");
+        
+        try
+        {
+            var plugin = new NuGetPluginInfo("TestPlugin", "1.0.0", tempFile);
+
+            // Act
+            var result = (bool)typeof(PluginLoader)
+                .GetMethod("IsNuGetPluginValid", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .Invoke(null, new object[] { plugin, logger })!;
+
+            // Assert - should return true since the file exists (version check may fail gracefully)
+            Assert.True(result);
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
+
+    [Fact]
+    public void IsNuGetPluginValid_WithNonExistentDll_ReturnsFalse()
+    {
+        // Arrange
+        var logger = new TestLogger();
+        var plugin = new NuGetPluginInfo("TestPlugin", "1.0.0", "/nonexistent/path/TestPlugin.dll");
+
+        // Act
+        var result = (bool)typeof(PluginLoader)
+            .GetMethod("IsNuGetPluginValid", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .Invoke(null, new object[] { plugin, logger })!;
+
+        // Assert
+        Assert.False(result);
     }
 
     private class TestLogger : ILogger
