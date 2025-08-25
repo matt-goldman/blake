@@ -256,47 +256,8 @@ public class PluginLoaderTests
     [InlineData("different", "other", false)] // String fallback should fail for different strings
     public void IsNuGetPluginValid_VersionComparison_WorksCorrectly(string pluginVersion, string fileVersion, bool expectedResult)
     {
-        // This test verifies the version comparison logic directly
-        // Since we can't easily control FileVersionInfo.GetVersionInfo in unit tests,
-        // we'll test the version comparison logic by calling a helper method
-        
-        // For now, let's test the Version parsing logic separately
-        bool result;
-        if (Version.TryParse(pluginVersion, out var expectedVersion) && Version.TryParse(fileVersion, out var actualVersion))
-        {
-            // Compare only as many components as are present in pluginVersion
-            bool matches = true;
-            if (expectedVersion.Major != actualVersion.Major) matches = false;
-            if (expectedVersion.Minor != -1 && expectedVersion.Minor != actualVersion.Minor) matches = false;
-            
-            // Handle Build component: if expected doesn't specify Build (=-1), actual should be 0 or -1
-            if (expectedVersion.Build == -1)
-            {
-                if (actualVersion.Build != 0 && actualVersion.Build != -1) matches = false;
-            }
-            else
-            {
-                if (expectedVersion.Build != actualVersion.Build) matches = false;
-            }
-            
-            // Handle Revision component: if expected doesn't specify Revision (=-1), actual should be 0 or -1
-            if (expectedVersion.Revision == -1)
-            {
-                if (actualVersion.Revision != 0 && actualVersion.Revision != -1) matches = false;
-            }
-            else
-            {
-                if (expectedVersion.Revision != actualVersion.Revision) matches = false;
-            }
-            
-            result = matches;
-        }
-        else
-        {
-            // Fallback: exact string match
-            result = fileVersion == pluginVersion;
-        }
-
+        // This test verifies the version comparison logic directly using the VersionUtils utility
+        var result = VersionUtils.AreVersionsCompatible(pluginVersion, fileVersion);
         Assert.Equal(expectedResult, result);
     }
 
