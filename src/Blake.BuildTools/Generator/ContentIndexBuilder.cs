@@ -16,7 +16,10 @@ public static class ContentIndexBuilder
         sb.AppendLine("    public static partial List<PageModel> GetPages() => new()");
         sb.AppendLine("    {");
 
-        foreach (var page in allPages)
+        // Filter out draft pages - they should be accessible by URL but not listed in navigation
+        var nonDraftPages = allPages.Where(p => !p.Draft).ToList();
+
+        foreach (var page in nonDraftPages)
         {
             try
             {

@@ -204,6 +204,55 @@ public class BlakeBakeCommandTests : TestFixtureBase
     }
 
     [Fact]
+    public async Task BlakeBake_WithIncludeDraftsFlag_ExcludesDraftsFromContentIndex()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-bake-drafts-not-in-index");
+        
+        // Create a published post
+        FileSystemHelper.CreateMarkdownFile(
+            Path.Combine(testDir, "Posts", "published-post.md"),
+            "Published Post",
+            "This post is published.",
+            new Dictionary<string, object> { ["draft"] = false }
+        );
+        
+        // Create a draft post
+        FileSystemHelper.CreateMarkdownFile(
+            Path.Combine(testDir, "Posts", "draft-post.md"),
+            "Draft Post",
+            "This post is a draft.",
+            new Dictionary<string, object> { ["draft"] = true }
+        );
+
+        FileSystemHelper.CreateRazorTemplate(
+            Path.Combine(testDir, "Posts", "template.razor"),
+            @"@page ""/posts/{Slug}""
+<h1>@Title</h1>
+<div>@Body</div>"
+        );
+
+        // Act
+        var result = await RunBlakeCommandAsync(["bake", testDir, "--includeDrafts"]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        
+        // Both posts should be generated as razor files
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".generated", "posts", "PublishedPost.razor"));
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".generated", "posts", "DraftPost.razor"));
+        
+        // Content index should be created
+        var indexPath = Path.Combine(testDir, ".generated", "GeneratedContentIndex.cs");
+        FileSystemHelper.AssertFileExists(indexPath);
+        
+        // Content index should contain published post but not draft post
+        var indexContent = File.ReadAllText(indexPath);
+        Assert.Contains("Published Post", indexContent);
+        Assert.DoesNotContain("Draft Post", indexContent);
+    }
+
+    [Fact]
     public async Task BlakeBake_WithTemplateInSameFolder_UsesTemplate()
     {
         // Arrange
