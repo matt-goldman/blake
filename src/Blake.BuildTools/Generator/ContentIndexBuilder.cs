@@ -32,6 +32,8 @@ public static class ContentIndexBuilder
                 if (page.Date.HasValue)
                     sb.AppendLine(
                         $"            Date = new DateTime({page.Date.Value.Year}, {page.Date.Value.Month}, {page.Date.Value.Day}),");
+                // Draft property is always false here since drafts are filtered out above
+                // We include it for consistency with PageModel structure and explicit state indication
                 sb.AppendLine($"            Draft = {page.Draft.ToString().ToLowerInvariant()},");
                 sb.AppendLine($"            IconIdentifier = @\"{page.IconIdentifier}\",");
                 if (page.Tags.Count > 0)
