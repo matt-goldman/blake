@@ -337,7 +337,7 @@ internal static class SiteGenerator
 
                 logger.LogInformation("✅ Generated page: {OutputPath}", outputPath);
 
-                context.GeneratedPages.Add(new GeneratedPage(page, outputPath, generatedRazor));
+                context.GeneratedPages.Add(new GeneratedPage(page, outputPath, generatedRazor, renderedHtml));
             }
             catch (Exception e)
             {

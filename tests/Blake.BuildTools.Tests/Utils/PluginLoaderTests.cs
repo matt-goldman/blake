@@ -363,6 +363,7 @@ public class PluginLoaderTests
         public List<string> ErrorMessages { get; } = new List<string>();
         public List<string> InfoMessages { get; } = new List<string>();
         public List<string> DebugMessages { get; } = new List<string>();
+        public List<string> WarningMessages { get; } = new List<string>();
 
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
         public bool IsEnabled(LogLevel logLevel) => true;
@@ -381,6 +382,10 @@ public class PluginLoaderTests
             else if (logLevel == LogLevel.Debug)
             {
                 DebugMessages.Add(message);
+            }
+            else if (logLevel == LogLevel.Warning)
+            {
+                WarningMessages.Add(message);
             }
         }
     }

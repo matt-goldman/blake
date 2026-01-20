@@ -45,4 +45,4 @@ public class BlakeContext
 }
 
 public record MarkdownPage(string MdPath, string TemplatePath, string Slug, string RawMarkdown);
-public record GeneratedPage(PageModel Page, string OutputPath, string RazorHtml);
+public record GeneratedPage(PageModel Page, string OutputPath, string RazorHtml, string RawHtml);
