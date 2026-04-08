@@ -120,7 +120,7 @@ Love Hugo, Jekyll, or Gatsby? They're fantastic! But they make too many assumpti
 
 **[Complete documentation →](https://blake-ssg.org)**
 
-- [Getting Started Guide](https://blake-ssg.org/getting-started)
+- [Getting Started Guide](https://blake-ssg.org/1%20introduction/quickstart)
 - [Template Development](https://blake-ssg.org/templates) 
 - [Plugin Development](https://blake-ssg.org/plugins)
 - [Blake Philosophy](https://blake-ssg.org/philosophy)
