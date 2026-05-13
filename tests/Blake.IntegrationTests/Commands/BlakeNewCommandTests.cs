@@ -125,6 +125,71 @@ public class BlakeNewCommandTests : TestFixtureBase
     }
 
     [Fact]
+    public async Task BlakeNewPage_WithPositionalTitle_CreatesPage()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-page-positional-title");
+
+        // Act
+        var result = await RunBlakeFromDotnetAsync("new page \"About Blake\"", workingDirectory: testDir);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Pages", "about-blake.md"));
+    }
+
+    [Fact]
+    public async Task BlakeNewPost_UsesExistingCaseInsensitivePostsDirectory()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-post-lowercase-folder");
+        var lowercasePosts = Path.Combine(testDir, "posts");
+        Directory.CreateDirectory(lowercasePosts);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "post", testDir, "--title", "Case Test"]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        Assert.Single(Directory.GetFiles(lowercasePosts, "*.md", SearchOption.TopDirectoryOnly));
+        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, "Posts"));
+    }
+
+    [Fact]
+    public async Task BlakeNewPost_WithDirectoryOption_UpdatesTemplateFrontmatter()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-post-frontmatter-template");
+        var targetDir = Path.Combine(testDir, "Posts", "Tech", "DotNet");
+        var templatePath = Path.Combine(targetDir, "template.md");
+        Directory.CreateDirectory(targetDir);
+        await File.WriteAllTextAsync(templatePath,
+            """
+            ---
+            title: "replace me"
+            date: 2001-01-01
+            id: "existing-id"
+            category: "engineering"
+            ---
+
+            # Draft
+            """);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "post", "--directory", targetDir, "A Better CLI"]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var outputFile = Directory.GetFiles(targetDir, "*.md", SearchOption.TopDirectoryOnly)
+            .Single(path => !path.EndsWith("template.md", StringComparison.OrdinalIgnoreCase));
+        var fileContents = File.ReadAllText(outputFile);
+        Assert.Contains("title: \"A Better CLI\"", fileContents);
+        Assert.DoesNotContain("date: 2001-01-01", fileContents);
+        Assert.DoesNotContain("id: \"existing-id\"", fileContents);
+        Assert.Contains("category: \"engineering\"", fileContents);
+    }
+
+    [Fact]
     public async Task BlakeNew_DefaultTemplate_CreatesBlazorWasmProject()
     {
         // Arrange

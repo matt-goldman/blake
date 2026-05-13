@@ -2,6 +2,7 @@ using Blake.BuildTools.Generator;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using Blake.BuildTools.Services;
 using Blake.Types;
 using Microsoft.Extensions.Logging;
@@ -106,11 +107,13 @@ public class Program
         Console.WriteLine("                         --list           Lists all available templates in the public Blake registry");
         Console.WriteLine("  new post [PATH]      Generates a markdown post in [PATH]/Posts.");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --title, -t      The post title (required).");
+        Console.WriteLine("                         --title, -t      The post title (or provide as first positional argument).");
+        Console.WriteLine("                         --directory, -d  The directory to create the file in (optional).");
         Console.WriteLine();
         Console.WriteLine("  new page [PATH]      Generates a markdown page in [PATH]/Pages.");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --title, -t      The page title (required).");
+        Console.WriteLine("                         --title, -t      The page title (or provide as first positional argument).");
+        Console.WriteLine("                         --directory, -d  The directory to create the file in (optional).");
         Console.WriteLine();
         Console.WriteLine("  serve <PATH>         Bake and run the Blazor app in development mode.");
         Console.WriteLine("                       Options:");
@@ -472,10 +475,14 @@ public class Program
     private static async Task<int> NewContentAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
     {
         var contentType = args[1].ToLowerInvariant();
-        var targetPath = Directory.GetCurrentDirectory();
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var projectPath = currentDirectory;
         var title = string.Empty;
+        string? providedDirectory = null;
+        var positionalArguments = new List<string>();
         var now = DateTime.UtcNow;
         var dateStamp = now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var id = Guid.NewGuid().ToString();
 
         for (var i = 2; i < args.Length; i++)
         {
@@ -493,26 +500,99 @@ public class Program
                 continue;
             }
 
-            if (!arg.StartsWith('-') && targetPath == Directory.GetCurrentDirectory())
+            if (arg is "--directory" or "-d")
             {
-                targetPath = arg.Trim('"');
+                if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]))
+                {
+                    logger.LogError("A directory is required after --directory or -d.");
+                    return 1;
+                }
+
+                providedDirectory = args[++i].Trim();
+                continue;
+            }
+
+            if (arg.StartsWith('-'))
+            {
+                logger.LogError("Unknown option for 'new {contentType}': {arg}", contentType, arg);
+                return 1;
+            }
+
+            positionalArguments.Add(arg.Trim('"'));
+        }
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            if (positionalArguments.Count == 0)
+            {
+                logger.LogError("A title is required. Use --title or -t, or provide it as a positional argument.");
+                return 1;
+            }
+
+            if (positionalArguments.Count == 1 && !string.IsNullOrWhiteSpace(providedDirectory))
+            {
+                title = positionalArguments[0];
+            }
+            else if (positionalArguments.Count == 1)
+            {
+                if (LooksLikePath(positionalArguments[0]))
+                {
+                    projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
+                }
+                else
+                {
+                    title = positionalArguments[0];
+                }
+            }
+            else
+            {
+                if (LooksLikePath(positionalArguments[0]))
+                {
+                    projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
+                    title = string.Join(" ", positionalArguments.Skip(1));
+                }
+                else
+                {
+                    title = string.Join(" ", positionalArguments);
+                }
+            }
+        }
+        else
+        {
+            if (positionalArguments.Count > 1)
+            {
+                logger.LogError("Too many positional arguments provided.");
+                return 1;
+            }
+
+            if (positionalArguments.Count == 1)
+            {
+                projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
             }
         }
 
         if (string.IsNullOrWhiteSpace(title))
         {
-            logger.LogError("A title is required. Use --title or -t.");
+            logger.LogError("A title is required. Use --title or -t, or provide it as a positional argument.");
             return 1;
         }
 
-        if (!Directory.Exists(targetPath))
+        if (!Directory.Exists(projectPath))
         {
-            logger.LogError("Path '{targetPath}' does not exist.", targetPath);
+            logger.LogError("Path '{projectPath}' does not exist.", projectPath);
             return 1;
         }
 
-        var contentFolderName = contentType == "post" ? "Posts" : "Pages";
-        var contentFolderPath = Path.Combine(targetPath, contentFolderName);
+        var contentFolderPath = string.IsNullOrWhiteSpace(providedDirectory)
+            ? ResolveDefaultContentDirectory(projectPath, contentType)
+            : Path.GetFullPath(Path.IsPathRooted(providedDirectory) ? providedDirectory : Path.Combine(projectPath, providedDirectory));
+
+        if (string.IsNullOrWhiteSpace(contentFolderPath))
+        {
+            logger.LogError("Could not resolve output directory.");
+            return 1;
+        }
+
         Directory.CreateDirectory(contentFolderPath);
 
         var slug = Slugify(title);
@@ -528,15 +608,12 @@ public class Program
             counter++;
         }
 
-        var templateFilePath = Path.Combine(targetPath, $"{contentType}-template.md");
-        var contentTemplate = File.Exists(templateFilePath)
+        var templateFilePath = ResolveTemplatePath(contentType, contentFolderPath, projectPath);
+        var contentTemplate = templateFilePath is not null
             ? await File.ReadAllTextAsync(templateFilePath, cancellationToken)
             : GetDefaultContentTemplate(title, dateStamp);
 
-        var content = contentTemplate
-            .Replace("{{title}}", title)
-            .Replace("{{date}}", dateStamp)
-            .Replace("{{slug}}", slug);
+        var content = ApplyTemplateValues(contentTemplate, title, dateStamp, slug, id);
 
         await File.WriteAllTextAsync(outputFilePath, content, cancellationToken);
         logger.LogInformation("✅ Created {contentType} at {outputFilePath}", contentType, outputFilePath);
@@ -595,6 +672,80 @@ public class Program
                 # {title}
 
                 """;
+    }
+
+    private static string ResolveDefaultContentDirectory(string projectPath, string contentType)
+    {
+        var preferredFolderName = contentType == "post" ? "Posts" : "Pages";
+        var existingFolder = Directory.GetDirectories(projectPath, "*", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault(path => string.Equals(Path.GetFileName(path), preferredFolderName, StringComparison.OrdinalIgnoreCase));
+
+        return existingFolder ?? Path.Combine(projectPath, preferredFolderName);
+    }
+
+    private static bool LooksLikePath(string value)
+    {
+        return value == "." ||
+               value == ".." ||
+               value.Contains(Path.DirectorySeparatorChar) ||
+               value.Contains(Path.AltDirectorySeparatorChar) ||
+               Path.IsPathRooted(value) ||
+               Directory.Exists(value);
+    }
+
+    private static string? ResolveTemplatePath(string contentType, string outputDirectory, string projectPath)
+    {
+        var candidates = new[]
+        {
+            Path.Combine(outputDirectory, $"{contentType}-template.md"),
+            Path.Combine(outputDirectory, "template.md"),
+            Path.Combine(projectPath, $"{contentType}-template.md"),
+            Path.Combine(projectPath, "template.md")
+        };
+
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
+    private static string ApplyTemplateValues(string contentTemplate, string title, string dateStamp, string slug, string id)
+    {
+        var content = contentTemplate
+            .Replace("{{title}}", title)
+            .Replace("{{date}}", dateStamp)
+            .Replace("{{slug}}", slug)
+            .Replace("{{id}}", id);
+
+        return UpdateFrontmatterValues(content, title, dateStamp, id);
+    }
+
+    private static string UpdateFrontmatterValues(string content, string title, string dateStamp, string id)
+    {
+        var normalizedContent = content.Replace("\r\n", "\n");
+        if (!normalizedContent.StartsWith("---\n", StringComparison.Ordinal))
+        {
+            return content;
+        }
+
+        var frontmatterEnd = normalizedContent.IndexOf("\n---\n", 4, StringComparison.Ordinal);
+        if (frontmatterEnd < 0)
+        {
+            return content;
+        }
+
+        var frontmatter = normalizedContent[4..frontmatterEnd];
+        var body = normalizedContent[(frontmatterEnd + 5)..];
+
+        frontmatter = SetFrontmatterValue(frontmatter, "title", $"\"{EscapeForDoubleQuotedYaml(title)}\"");
+        frontmatter = SetFrontmatterValue(frontmatter, "date", dateStamp);
+        frontmatter = SetFrontmatterValue(frontmatter, "id", $"\"{id}\"");
+
+        var updatedContent = $"---\n{frontmatter}\n---\n{body}";
+        return content.Contains("\r\n", StringComparison.Ordinal) ? updatedContent.Replace("\n", "\r\n") : updatedContent;
+    }
+
+    private static string SetFrontmatterValue(string frontmatter, string key, string value)
+    {
+        var pattern = $@"^(?<indent>\s*){Regex.Escape(key)}\s*:\s*.*$";
+        return Regex.Replace(frontmatter, pattern, $"${{indent}}{key}: {value}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
     }
 
     private static string EscapeForDoubleQuotedYaml(string input)

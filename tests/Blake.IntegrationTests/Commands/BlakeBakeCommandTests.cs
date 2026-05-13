@@ -239,6 +239,43 @@ public class BlakeBakeCommandTests : TestFixtureBase
     }
 
     [Fact]
+    public async Task BlakeBake_IgnoresMarkdownTemplateDefinitionFiles()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-bake-ignores-template-markdown");
+
+        FileSystemHelper.CreateMarkdownFile(
+            Path.Combine(testDir, "Posts", "post.md"),
+            "Test Post",
+            "Post content."
+        );
+
+        FileSystemHelper.CreateRazorTemplate(
+            Path.Combine(testDir, "Posts", "template.razor"),
+            @"@page ""/posts/{Slug}""
+<h1>@Title</h1>
+<div>@Body</div>"
+        );
+
+        await File.WriteAllTextAsync(Path.Combine(testDir, "Posts", "post-template.md"),
+            """
+            ---
+            title: "Template"
+            ---
+
+            Template content
+            """);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["bake", testDir]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        FileSystemHelper.AssertFileExists(Path.Combine(testDir, ".generated", "posts", "Post.razor"));
+        FileSystemHelper.AssertFileNotExists(Path.Combine(testDir, ".generated", "posts", "PostTemplate.razor"));
+    }
+
+    [Fact]
     public async Task BlakeBake_WithMissingTemplate_ShowsError()
     {
         // Arrange

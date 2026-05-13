@@ -83,6 +83,8 @@ blake new --list
 ```bash
 blake new post -t "Adding new templates to Blake"
 blake new page -t "About"
+blake new post "Positional title works too"
+blake new post --directory Posts/Tech "Nested post"
 ```
 
 
