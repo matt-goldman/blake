@@ -79,6 +79,12 @@ blake bake
 blake new --list
 ```
 
+**Generate a new post or page scaffold:**
+```bash
+blake new post -t "Adding new templates to Blake"
+blake new page -t "About"
+```
+
 
 ## ✨ Why Blake?
 

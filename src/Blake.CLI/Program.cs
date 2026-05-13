@@ -47,6 +47,10 @@ public class Program
             case "serve":
                 return await ServeBakeAsync(args, logger, cancellationToken);
             case "new":
+                if (args.Length > 1 && (args[1].Equals("post", StringComparison.OrdinalIgnoreCase) || args[1].Equals("page", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return await NewContentAsync(args, logger, cancellationToken);
+                }
                 return await NewSiteAsync(args, logger, cancellationToken);
             default:
                 logger.LogError("Unknown option: {option}", option);
@@ -98,6 +102,13 @@ public class Program
         Console.WriteLine("                         --siteName, -sn  The name of the new site (optional). Uses the directory name if not specified. If configured in the template, replaces the template name with the provided name.");
         Console.WriteLine("                         --url, -u        The URL of the repo that hosts the template (optional). Can be used to install templates outside the public Blake registry. Uses Git, so should work with any repo you have access to.");
         Console.WriteLine("                         --list           Lists all available templates in the public Blake registry");
+        Console.WriteLine("  new post [PATH]      Generates a markdown post in [PATH]/Posts.");
+        Console.WriteLine("                       Options:");
+        Console.WriteLine("                         --title, -t      The post title (required).");
+        Console.WriteLine();
+        Console.WriteLine("  new page [PATH]      Generates a markdown page in [PATH]/Pages.");
+        Console.WriteLine("                       Options:");
+        Console.WriteLine("                         --title, -t      The page title (required).");
         Console.WriteLine();
         Console.WriteLine("  serve <PATH>         Bake and run the Blazor app in development mode.");
         Console.WriteLine("                       Options:");
@@ -307,7 +318,7 @@ public class Program
 
         var templateService = new TemplateService();
         
-        if (args[1] == "--list")
+        if (args.Length > 1 && args[1] == "--list")
         {
             var templates = await templateService.GetTemplatesAsync(cancellationToken);
             
@@ -456,6 +467,80 @@ public class Program
         return await BakeBlakeAsync(args, logger, cancellationToken);
     }
 
+    private static async Task<int> NewContentAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
+    {
+        var contentType = args[1].ToLowerInvariant();
+        var targetPath = Directory.GetCurrentDirectory();
+        var title = string.Empty;
+        var now = DateTime.UtcNow;
+
+        for (var i = 2; i < args.Length; i++)
+        {
+            var arg = args[i];
+
+            if (arg is "--title" or "-t")
+            {
+                if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]))
+                {
+                    logger.LogError("A title is required. Use --title or -t.");
+                    return 1;
+                }
+
+                title = args[++i].Trim();
+                continue;
+            }
+
+            if (!arg.StartsWith('-') && targetPath == Directory.GetCurrentDirectory())
+            {
+                targetPath = arg.Trim('"');
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            logger.LogError("A title is required. Use --title or -t.");
+            return 1;
+        }
+
+        if (!Directory.Exists(targetPath))
+        {
+            logger.LogError("Path '{targetPath}' does not exist.", targetPath);
+            return 1;
+        }
+
+        var contentFolderName = contentType == "post" ? "Posts" : "Pages";
+        var contentFolderPath = Path.Combine(targetPath, contentFolderName);
+        Directory.CreateDirectory(contentFolderPath);
+
+        var slug = Slugify(title);
+        var fileName = contentType == "post" ? $"{now:yyyy-MM-dd}-{slug}.md" : $"{slug}.md";
+        var outputFilePath = Path.Combine(contentFolderPath, fileName);
+        var counter = 2;
+        while (File.Exists(outputFilePath))
+        {
+            var candidate = contentType == "post"
+                ? $"{now:yyyy-MM-dd}-{slug}-{counter}.md"
+                : $"{slug}-{counter}.md";
+            outputFilePath = Path.Combine(contentFolderPath, candidate);
+            counter++;
+        }
+
+        var templateFilePath = Path.Combine(targetPath, $"{contentType}-template.md");
+        var contentTemplate = File.Exists(templateFilePath)
+            ? await File.ReadAllTextAsync(templateFilePath, cancellationToken)
+            : GetDefaultContentTemplate(title, now);
+
+        var content = contentTemplate
+            .Replace("{{title}}", title)
+            .Replace("{{date}}", now.ToString("yyyy-MM-dd"))
+            .Replace("{{slug}}", slug);
+
+        await File.WriteAllTextAsync(outputFilePath, content, cancellationToken);
+        logger.LogInformation("✅ Created {contentType} at {outputFilePath}", contentType, outputFilePath);
+
+        return 0;
+    }
+
     private static string GetPathFromArgs(string[] args)
     {
         if (args.Length > 1 && !string.IsNullOrWhiteSpace(args[1]) && !args[1].StartsWith('-'))
@@ -469,5 +554,31 @@ public class Program
         }
 
         return Directory.GetCurrentDirectory();
+    }
+
+    private static string Slugify(string title)
+    {
+        var chars = title
+            .ToLowerInvariant()
+            .Select(c => char.IsLetterOrDigit(c) ? c : '-')
+            .ToArray();
+
+        var slug = string.Join("-", new string(chars).Split('-', StringSplitOptions.RemoveEmptyEntries));
+        return string.IsNullOrWhiteSpace(slug) ? "untitled" : slug;
+    }
+
+    private static string GetDefaultContentTemplate(string title, DateTime now)
+    {
+        var escapedTitle = title.Replace("'", "''");
+        return $"""
+                ---
+                title: '{escapedTitle}'
+                date: {now:yyyy-MM-dd}
+                description: ""
+                ---
+
+                # {title}
+
+                """;
     }
 }

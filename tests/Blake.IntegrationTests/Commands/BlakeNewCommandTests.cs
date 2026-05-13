@@ -55,6 +55,72 @@ public class BlakeNewCommandTests : TestFixtureBase
     }
 
     [Fact]
+    public async Task BlakeNewPost_WithTitle_CreatesPostMarkdownFile()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-post");
+        var title = "Adding new templates to Blake";
+        var expectedPrefix = $"{DateTime.UtcNow:yyyy-MM-dd}-adding-new-templates-to-blake";
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "post", testDir, "-t", title]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var postsPath = Path.Combine(testDir, "Posts");
+        FileSystemHelper.AssertDirectoryExists(postsPath);
+
+        var postFile = Directory.GetFiles(postsPath, "*.md", SearchOption.TopDirectoryOnly).Single();
+        Assert.StartsWith(expectedPrefix, Path.GetFileNameWithoutExtension(postFile));
+        FileSystemHelper.AssertFileContains(postFile, $"title: '{title}'");
+        FileSystemHelper.AssertFileContains(postFile, "# Adding new templates to Blake");
+    }
+
+    [Fact]
+    public async Task BlakeNewPage_UsesPageTemplateWhenPresent()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-page");
+        var title = "About Blake";
+        var templatePath = Path.Combine(testDir, "page-template.md");
+        await File.WriteAllTextAsync(templatePath,
+            """
+            ---
+            title: "{{title}}"
+            date: {{date}}
+            slug: "{{slug}}"
+            ---
+
+            Welcome to {{title}}.
+            """);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "page", testDir, "--title", title]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var outputFilePath = Path.Combine(testDir, "Pages", "about-blake.md");
+        FileSystemHelper.AssertFileExists(outputFilePath);
+        FileSystemHelper.AssertFileContains(outputFilePath, "title: \"About Blake\"");
+        FileSystemHelper.AssertFileContains(outputFilePath, "slug: \"about-blake\"");
+        FileSystemHelper.AssertFileContains(outputFilePath, "Welcome to About Blake.");
+    }
+
+    [Fact]
+    public async Task BlakeNewPost_WithoutTitle_ShowsError()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-post-missing-title");
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "post", testDir]);
+
+        // Assert
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(result.ErrorText, error => error.Contains("title is required"));
+    }
+
+    [Fact]
     public async Task BlakeNew_DefaultTemplate_CreatesBlazorWasmProject()
     {
         // Arrange
