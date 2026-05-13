@@ -169,8 +169,7 @@ internal static class PluginLoader
             }
 
             // For NuGet packages, the file version should match the package version
-            // Some packages may have different versioning schemes, so we'll be lenient
-            if (fileVersion.StartsWith(plugin.Version))
+            if (VersionUtils.AreVersionsCompatible(plugin.Version, fileVersion))
             {
                 return true;
             }
