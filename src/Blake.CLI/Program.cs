@@ -514,7 +514,7 @@ public class Program
 
             if (arg.StartsWith('-'))
             {
-                logger.LogError("Unknown option for 'new {contentType}': {arg}", contentType, arg);
+                logger.LogError("Unknown option for '{Command}': '{Option}'", $"new {contentType}", arg);
                 return 1;
             }
 
