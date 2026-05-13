@@ -120,10 +120,10 @@ Love Hugo, Jekyll, or Gatsby? They're fantastic! But they make too many assumpti
 
 **[Complete documentation →](https://blake-ssg.org)**
 
-- [Getting Started Guide](https://blake-ssg.org/getting-started)
-- [Template Development](https://blake-ssg.org/templates) 
-- [Plugin Development](https://blake-ssg.org/plugins)
-- [Blake Philosophy](https://blake-ssg.org/philosophy)
+- [Getting Started Guide](https://blake-ssg.org/1%20introduction/quickstart)
+- [Template Development](https://blake-ssg.org/6%20creating%20site%20templates/overview)
+- [Plugin Development](https://blake-ssg.org/7%20writing%20plugins/overview)
+- [Blake Philosophy](https://blake-ssg.org/4%20meta/philosophy)
 
 ---
 
@@ -131,6 +131,6 @@ Love Hugo, Jekyll, or Gatsby? They're fantastic! But they make too many assumpti
 
 **Ready to bake?** 🍞✨
 
-[**Get Started →**](https://blake-ssg.org) • [**View Templates →**](https://blake-ssg.org/templates) • [**Join Community →**](https://github.com/matt-goldman/blake/discussions)
+[**Get Started →**](https://blake-ssg.org) • [**View Templates →**](https://blake-ssg.org/2%20using%20blake/sitetemplates) • [**Join Community →**](https://github.com/matt-goldman/blake/discussions)
 
 </div>
