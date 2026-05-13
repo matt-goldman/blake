@@ -1,5 +1,7 @@
-﻿using Blake.BuildTools.Generator;
+using Blake.BuildTools.Generator;
 using System.Diagnostics;
+using System.Globalization;
+using System.Text;
 using Blake.BuildTools.Services;
 using Blake.Types;
 using Microsoft.Extensions.Logging;
@@ -473,6 +475,7 @@ public class Program
         var targetPath = Directory.GetCurrentDirectory();
         var title = string.Empty;
         var now = DateTime.UtcNow;
+        var dateStamp = now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         for (var i = 2; i < args.Length; i++)
         {
@@ -513,13 +516,13 @@ public class Program
         Directory.CreateDirectory(contentFolderPath);
 
         var slug = Slugify(title);
-        var fileName = contentType == "post" ? $"{now:yyyy-MM-dd}-{slug}.md" : $"{slug}.md";
+        var fileName = contentType == "post" ? $"{dateStamp}-{slug}.md" : $"{slug}.md";
         var outputFilePath = Path.Combine(contentFolderPath, fileName);
         var counter = 2;
         while (File.Exists(outputFilePath))
         {
             var candidate = contentType == "post"
-                ? $"{now:yyyy-MM-dd}-{slug}-{counter}.md"
+                ? $"{dateStamp}-{slug}-{counter}.md"
                 : $"{slug}-{counter}.md";
             outputFilePath = Path.Combine(contentFolderPath, candidate);
             counter++;
@@ -528,11 +531,11 @@ public class Program
         var templateFilePath = Path.Combine(targetPath, $"{contentType}-template.md");
         var contentTemplate = File.Exists(templateFilePath)
             ? await File.ReadAllTextAsync(templateFilePath, cancellationToken)
-            : GetDefaultContentTemplate(title, now);
+            : GetDefaultContentTemplate(title, dateStamp);
 
         var content = contentTemplate
             .Replace("{{title}}", title)
-            .Replace("{{date}}", now.ToString("yyyy-MM-dd"))
+            .Replace("{{date}}", dateStamp)
             .Replace("{{slug}}", slug);
 
         await File.WriteAllTextAsync(outputFilePath, content, cancellationToken);
@@ -558,27 +561,44 @@ public class Program
 
     private static string Slugify(string title)
     {
-        var chars = title
-            .ToLowerInvariant()
-            .Select(c => char.IsLetterOrDigit(c) ? c : '-')
-            .ToArray();
+        var slugBuilder = new StringBuilder();
+        var lastWasDash = false;
 
-        var slug = string.Join("-", new string(chars).Split('-', StringSplitOptions.RemoveEmptyEntries));
+        foreach (var c in title.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                slugBuilder.Append(c);
+                lastWasDash = false;
+                continue;
+            }
+
+            if (lastWasDash || slugBuilder.Length == 0) continue;
+            slugBuilder.Append('-');
+            lastWasDash = true;
+        }
+
+        var slug = slugBuilder.ToString().Trim('-');
         return string.IsNullOrWhiteSpace(slug) ? "untitled" : slug;
     }
 
-    private static string GetDefaultContentTemplate(string title, DateTime now)
+    private static string GetDefaultContentTemplate(string title, string dateStamp)
     {
-        var escapedTitle = title.Replace("'", "''");
+        var escapedTitle = EscapeForDoubleQuotedYaml(title);
         return $"""
                 ---
-                title: '{escapedTitle}'
-                date: {now:yyyy-MM-dd}
+                title: "{escapedTitle}"
+                date: {dateStamp}
                 description: ""
                 ---
 
                 # {title}
 
                 """;
+    }
+
+    private static string EscapeForDoubleQuotedYaml(string input)
+    {
+        return input.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 }

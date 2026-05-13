@@ -11,6 +11,7 @@ namespace Blake.IntegrationTests.Commands;
 /// </summary>
 public class BlakeNewCommandTests : TestFixtureBase
 {
+    private const int DatePrefixLength = 10;
     const string shortName1 = "tailwind-sample";
     const string shortName2 = "simpledocs";
     const string longName1 = "Blake Simple Tailwind Sample";
@@ -60,7 +61,6 @@ public class BlakeNewCommandTests : TestFixtureBase
         // Arrange
         var testDir = CreateTempDirectory("blake-new-post");
         var title = "Adding new templates to Blake";
-        var expectedPrefix = $"{DateTime.UtcNow:yyyy-MM-dd}-adding-new-templates-to-blake";
 
         // Act
         var result = await RunBlakeCommandAsync(["new", "post", testDir, "-t", title]);
@@ -71,8 +71,12 @@ public class BlakeNewCommandTests : TestFixtureBase
         FileSystemHelper.AssertDirectoryExists(postsPath);
 
         var postFile = Directory.GetFiles(postsPath, "*.md", SearchOption.TopDirectoryOnly).Single();
-        Assert.StartsWith(expectedPrefix, Path.GetFileNameWithoutExtension(postFile));
-        FileSystemHelper.AssertFileContains(postFile, $"title: '{title}'");
+        var postFileName = Path.GetFileNameWithoutExtension(postFile);
+        Assert.Matches(@"^\d{4}-\d{2}-\d{2}-adding-new-templates-to-blake$", postFileName);
+
+        var postDate = postFileName[..DatePrefixLength];
+        FileSystemHelper.AssertFileContains(postFile, $"date: {postDate}");
+        FileSystemHelper.AssertFileContains(postFile, $"title: \"{title}\"");
         FileSystemHelper.AssertFileContains(postFile, "# Adding new templates to Blake");
     }
 
