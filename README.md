@@ -79,12 +79,12 @@ blake bake
 blake new --list
 ```
 
-**Generate a new post or page scaffold:**
+**Generate a new content scaffold:**
 ```bash
-blake new post -t "Adding new templates to Blake"
-blake new page -t "About"
-blake new post "Positional title works too"
-blake new post --directory Posts/Tech "Nested post"
+blake new content -t "Adding new templates to Blake"
+blake new content "Positional title works too"
+blake new content --directory Posts/Tech "Nested post"
+blake new content # creates "Untitled" content in current directory
 ```
 
 

@@ -50,7 +50,7 @@ public class Program
             case "serve":
                 return await ServeBakeAsync(args, logger, cancellationToken);
             case "new":
-                if (args.Length > 1 && (args[1].Equals("post", StringComparison.OrdinalIgnoreCase) || args[1].Equals("page", StringComparison.OrdinalIgnoreCase)))
+                if (args.Length > 1 && args[1].Equals("content", StringComparison.OrdinalIgnoreCase))
                 {
                     return await NewContentAsync(args, logger, cancellationToken);
                 }
@@ -105,15 +105,11 @@ public class Program
         Console.WriteLine("                         --siteName, -sn  The name of the new site (optional). Uses the directory name if not specified. If configured in the template, replaces the template name with the provided name.");
         Console.WriteLine("                         --url, -u        The URL of the repo that hosts the template (optional). Can be used to install templates outside the public Blake registry. Uses Git, so should work with any repo you have access to.");
         Console.WriteLine("                         --list           Lists all available templates in the public Blake registry");
-        Console.WriteLine("  new post [PATH]      Generates a markdown post in [PATH]/Posts.");
+        Console.WriteLine("  new content [PATH]   Generates a markdown content file.");
         Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --title, -t      The post title (or provide as first positional argument).");
+        Console.WriteLine("                         --title, -t      The title (or provide as positional argument).");
         Console.WriteLine("                         --directory, -d  The directory to create the file in (optional).");
-        Console.WriteLine();
-        Console.WriteLine("  new page [PATH]      Generates a markdown page in [PATH]/Pages.");
-        Console.WriteLine("                       Options:");
-        Console.WriteLine("                         --title, -t      The page title (or provide as first positional argument).");
-        Console.WriteLine("                         --directory, -d  The directory to create the file in (optional).");
+        Console.WriteLine("                       If title is omitted, uses \"Untitled\".");
         Console.WriteLine();
         Console.WriteLine("  serve <PATH>         Bake and run the Blazor app in development mode.");
         Console.WriteLine("                       Options:");
@@ -474,7 +470,6 @@ public class Program
 
     private static async Task<int> NewContentAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
     {
-        var contentType = args[1].ToLowerInvariant();
         var currentDirectory = Directory.GetCurrentDirectory();
         var projectPath = currentDirectory;
         var title = string.Empty;
@@ -508,13 +503,13 @@ public class Program
                     return 1;
                 }
 
-                providedDirectory = args[++i].Trim();
+                providedDirectory = NormalizePathArgument(args[++i]);
                 continue;
             }
 
             if (arg.StartsWith('-'))
             {
-                logger.LogError("Unknown option for '{Command}': '{Option}'", $"new {contentType}", arg);
+                logger.LogError("Unknown option for '{Command}': '{Option}'", "new content", arg);
                 return 1;
             }
 
@@ -525,19 +520,26 @@ public class Program
         {
             if (positionalArguments.Count == 0)
             {
-                logger.LogError("A title is required. Use --title or -t, or provide it as a positional argument.");
-                return 1;
+                title = "Untitled";
             }
-
-            if (positionalArguments.Count == 1 && !string.IsNullOrWhiteSpace(providedDirectory))
+            else if (positionalArguments.Count == 1 && !string.IsNullOrWhiteSpace(providedDirectory))
             {
-                title = positionalArguments[0];
+                if (LooksLikePath(positionalArguments[0]))
+                {
+                    projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
+                    title = "Untitled";
+                }
+                else
+                {
+                    title = positionalArguments[0];
+                }
             }
             else if (positionalArguments.Count == 1)
             {
                 if (LooksLikePath(positionalArguments[0]))
                 {
                     projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
+                    title = "Untitled";
                 }
                 else
                 {
@@ -573,8 +575,7 @@ public class Program
 
         if (string.IsNullOrWhiteSpace(title))
         {
-            logger.LogError("A title is required. Use --title or -t, or provide it as a positional argument.");
-            return 1;
+            title = "Untitled";
         }
 
         if (!Directory.Exists(projectPath))
@@ -584,7 +585,7 @@ public class Program
         }
 
         var contentFolderPath = string.IsNullOrWhiteSpace(providedDirectory)
-            ? ResolveDefaultContentDirectory(projectPath, contentType)
+            ? projectPath
             : Path.GetFullPath(Path.IsPathRooted(providedDirectory) ? providedDirectory : Path.Combine(projectPath, providedDirectory));
 
         if (string.IsNullOrWhiteSpace(contentFolderPath))
@@ -595,6 +596,7 @@ public class Program
 
         Directory.CreateDirectory(contentFolderPath);
 
+        var contentType = InferContentType(contentFolderPath, projectPath);
         var slug = Slugify(title);
         var fileName = contentType == "post" ? $"{dateStamp}-{slug}.md" : $"{slug}.md";
         var outputFilePath = Path.Combine(contentFolderPath, fileName);
@@ -674,15 +676,6 @@ public class Program
                 """;
     }
 
-    private static string ResolveDefaultContentDirectory(string projectPath, string contentType)
-    {
-        var preferredFolderName = contentType == "post" ? "Posts" : "Pages";
-        var existingFolder = Directory.GetDirectories(projectPath, "*", SearchOption.TopDirectoryOnly)
-            .FirstOrDefault(path => string.Equals(Path.GetFileName(path), preferredFolderName, StringComparison.OrdinalIgnoreCase));
-
-        return existingFolder ?? Path.Combine(projectPath, preferredFolderName);
-    }
-
     private static bool LooksLikePath(string value)
     {
         return value == "." ||
@@ -691,6 +684,53 @@ public class Program
                value.Contains(Path.AltDirectorySeparatorChar) ||
                Path.IsPathRooted(value) ||
                Directory.Exists(value);
+    }
+
+    private static string NormalizePathArgument(string value)
+    {
+        var normalized = value.Trim().Trim('"', '\'');
+        if (normalized.Length <= 1 || string.IsNullOrWhiteSpace(normalized))
+        {
+            return normalized;
+        }
+
+        var root = Path.GetPathRoot(normalized);
+        if (!string.IsNullOrEmpty(root) && string.Equals(root, normalized, StringComparison.Ordinal))
+        {
+            return normalized;
+        }
+
+        return normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    }
+
+    private static string InferContentType(string outputDirectory, string projectPath)
+    {
+        if (PathSegmentsContain(outputDirectory, "pages"))
+        {
+            return "page";
+        }
+
+        if (PathSegmentsContain(outputDirectory, "posts"))
+        {
+            return "post";
+        }
+
+        var hasPostTemplate = ResolveTemplatePath("post", outputDirectory, projectPath) is not null;
+        var hasPageTemplate = ResolveTemplatePath("page", outputDirectory, projectPath) is not null;
+
+        if (hasPageTemplate && !hasPostTemplate)
+        {
+            return "page";
+        }
+
+        return "post";
+    }
+
+    private static bool PathSegmentsContain(string path, string segment)
+    {
+        return path
+            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)
+            .Any(part => string.Equals(part, segment, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string? ResolveTemplatePath(string contentType, string outputDirectory, string projectPath)

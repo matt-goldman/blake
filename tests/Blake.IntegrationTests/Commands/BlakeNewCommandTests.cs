@@ -56,21 +56,18 @@ public class BlakeNewCommandTests : TestFixtureBase
     }
 
     [Fact]
-    public async Task BlakeNewPost_WithTitle_CreatesPostMarkdownFile()
+    public async Task BlakeNewContent_WithTitle_CreatesPostMarkdownFile()
     {
         // Arrange
-        var testDir = CreateTempDirectory("blake-new-post");
+        var testDir = CreateTempDirectory("blake-new-content");
         var title = "Adding new templates to Blake";
 
         // Act
-        var result = await RunBlakeCommandAsync(["new", "post", testDir, "-t", title]);
+        var result = await RunBlakeCommandAsync(["new", "content", testDir, "-t", title]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        var postsPath = Path.Combine(testDir, "Posts");
-        FileSystemHelper.AssertDirectoryExists(postsPath);
-
-        var postFile = Directory.GetFiles(postsPath, "*.md", SearchOption.TopDirectoryOnly).Single();
+        var postFile = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly).Single();
         var postFileName = Path.GetFileNameWithoutExtension(postFile);
         Assert.Matches(@"^\d{4}-\d{2}-\d{2}-adding-new-templates-to-blake$", postFileName);
 
@@ -81,7 +78,7 @@ public class BlakeNewCommandTests : TestFixtureBase
     }
 
     [Fact]
-    public async Task BlakeNewPage_UsesPageTemplateWhenPresent()
+    public async Task BlakeNewContent_UsesPageTemplateWhenPresent()
     {
         // Arrange
         var testDir = CreateTempDirectory("blake-new-page");
@@ -99,11 +96,11 @@ public class BlakeNewCommandTests : TestFixtureBase
             """);
 
         // Act
-        var result = await RunBlakeCommandAsync(["new", "page", testDir, "--title", title]);
+        var result = await RunBlakeCommandAsync(["new", "content", testDir, "--title", title]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        var outputFilePath = Path.Combine(testDir, "Pages", "about-blake.md");
+        var outputFilePath = Path.Combine(testDir, "about-blake.md");
         FileSystemHelper.AssertFileExists(outputFilePath);
         FileSystemHelper.AssertFileContains(outputFilePath, "title: \"About Blake\"");
         FileSystemHelper.AssertFileContains(outputFilePath, "slug: \"about-blake\"");
@@ -111,55 +108,56 @@ public class BlakeNewCommandTests : TestFixtureBase
     }
 
     [Fact]
-    public async Task BlakeNewPost_WithoutTitle_ShowsError()
+    public async Task BlakeNewContent_WithoutTitle_UsesUntitled()
     {
         // Arrange
-        var testDir = CreateTempDirectory("blake-new-post-missing-title");
+        var testDir = CreateTempDirectory("blake-new-content-missing-title");
 
         // Act
-        var result = await RunBlakeCommandAsync(["new", "post", testDir]);
-
-        // Assert
-        Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains(result.ErrorText, error => error.Contains("title is required"));
-    }
-
-    [Fact]
-    public async Task BlakeNewPage_WithPositionalTitle_CreatesPage()
-    {
-        // Arrange
-        var testDir = CreateTempDirectory("blake-new-page-positional-title");
-
-        // Act
-        var result = await RunBlakeFromDotnetAsync("new page \"About Blake\"", workingDirectory: testDir);
+        var result = await RunBlakeCommandAsync(["new", "content", testDir]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
-        FileSystemHelper.AssertFileExists(Path.Combine(testDir, "Pages", "about-blake.md"));
+        var filePath = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly).Single();
+        FileSystemHelper.AssertFileContains(filePath, "title: \"Untitled\"");
     }
 
     [Fact]
-    public async Task BlakeNewPost_UsesExistingCaseInsensitivePostsDirectory()
+    public async Task BlakeNewContent_WithPositionalTitle_CreatesPostInCurrentDirectory()
     {
         // Arrange
-        var testDir = CreateTempDirectory("blake-new-post-lowercase-folder");
+        var testDir = CreateTempDirectory("blake-new-content-positional-title");
+
+        // Act
+        var result = await RunBlakeFromDotnetAsync("new content \"About Blake\"", workingDirectory: testDir);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var createdFile = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly).Single();
+        Assert.EndsWith("-about-blake.md", createdFile, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithDirectoryOption_UsesExistingCaseInsensitivePostsDirectory()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-lowercase-folder");
         var lowercasePosts = Path.Combine(testDir, "posts");
         Directory.CreateDirectory(lowercasePosts);
 
         // Act
-        var result = await RunBlakeCommandAsync(["new", "post", testDir, "--title", "Case Test"]);
+        var result = await RunBlakeCommandAsync(["new", "content", testDir, "--directory", "posts", "--title", "Case Test"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
         Assert.Single(Directory.GetFiles(lowercasePosts, "*.md", SearchOption.TopDirectoryOnly));
-        FileSystemHelper.AssertDirectoryNotExists(Path.Combine(testDir, "Posts"));
     }
 
     [Fact]
-    public async Task BlakeNewPost_WithDirectoryOption_UpdatesTemplateFrontmatter()
+    public async Task BlakeNewContent_WithDirectoryOption_UpdatesTemplateFrontmatter()
     {
         // Arrange
-        var testDir = CreateTempDirectory("blake-new-post-frontmatter-template");
+        var testDir = CreateTempDirectory("blake-new-content-frontmatter-template");
         var targetDir = Path.Combine(testDir, "Posts", "Tech", "DotNet");
         var templatePath = Path.Combine(targetDir, "template.md");
         Directory.CreateDirectory(targetDir);
@@ -176,7 +174,7 @@ public class BlakeNewCommandTests : TestFixtureBase
             """);
 
         // Act
-        var result = await RunBlakeCommandAsync(["new", "post", "--directory", targetDir, "A Better CLI"]);
+        var result = await RunBlakeCommandAsync(["new", "content", "--directory", targetDir, "A Better CLI"]);
 
         // Assert
         Assert.Equal(0, result.ExitCode);
@@ -187,6 +185,37 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.DoesNotContain("date: 2001-01-01", fileContents);
         Assert.DoesNotContain("id: \"existing-id\"", fileContents);
         Assert.Contains("category: \"engineering\"", fileContents);
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithQuotedDirectoryPath_TrimsQuotes()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-quoted-directory");
+        var nestedDir = Path.Combine(testDir, "Posts", "Quoted");
+        Directory.CreateDirectory(nestedDir);
+
+        // Act
+        var result = await RunBlakeFromDotnetAsync($"new content --directory \"{nestedDir}\" \"Quoted Directory\"");
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        Assert.Single(Directory.GetFiles(nestedDir, "*.md", SearchOption.TopDirectoryOnly));
+    }
+
+    [Fact]
+    public async Task BlakeNew_WithPathNamedPost_CreatesSiteDirectory()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-site-named-post");
+        var projectPath = Path.Combine(testDir, "post");
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", projectPath]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        FileSystemHelper.AssertFileExists(Path.Combine(projectPath, "post.csproj"));
     }
 
     [Fact]
