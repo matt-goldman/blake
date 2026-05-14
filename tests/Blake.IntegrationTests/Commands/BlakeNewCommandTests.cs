@@ -2,6 +2,7 @@ using Blake.CLI;
 using Blake.IntegrationTests.Infrastructure;
 using Blake.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 namespace Blake.IntegrationTests.Commands;
 
@@ -73,7 +74,7 @@ public class BlakeNewCommandTests : TestFixtureBase
 
         var postDate = postFileName[..DatePrefixLength];
         FileSystemHelper.AssertFileContains(postFile, $"date: {postDate}");
-        FileSystemHelper.AssertFileContains(postFile, $"title: \"{title}\"");
+        Assert.Matches($@"(?im)^title:\s*[""']?{Regex.Escape(title)}[""']?\s*$", File.ReadAllText(postFile));
         FileSystemHelper.AssertFileContains(postFile, "# Adding new templates to Blake");
     }
 
@@ -102,8 +103,8 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.Equal(0, result.ExitCode);
         var outputFilePath = Path.Combine(testDir, "about-blake.md");
         FileSystemHelper.AssertFileExists(outputFilePath);
-        FileSystemHelper.AssertFileContains(outputFilePath, "title: \"About Blake\"");
-        FileSystemHelper.AssertFileContains(outputFilePath, "slug: \"about-blake\"");
+        Assert.Matches(@"(?im)^title:\s*[""']?About Blake[""']?\s*$", File.ReadAllText(outputFilePath));
+        Assert.Matches(@"(?im)^slug:\s*[""']?about-blake[""']?\s*$", File.ReadAllText(outputFilePath));
         FileSystemHelper.AssertFileContains(outputFilePath, "Welcome to About Blake.");
     }
 
@@ -119,7 +120,7 @@ public class BlakeNewCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
         var filePath = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly).Single();
-        FileSystemHelper.AssertFileContains(filePath, "title: \"Untitled\"");
+        Assert.Matches(@"(?im)^title:\s*[""']?Untitled[""']?\s*$", File.ReadAllText(filePath));
     }
 
     [Fact]
