@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -91,5 +92,70 @@ public static class FrontmatterHelper
         }
 
         return obj;
+    }
+
+    public static string UpdateFrontmatterValuesIfPresent(string markdown, IReadOnlyDictionary<string, object> values)
+    {
+        if (values.Count == 0)
+        {
+            return markdown;
+        }
+
+        var hasCrLf = markdown.Contains("\r\n", StringComparison.Ordinal);
+        var normalizedContent = markdown.Replace("\r\n", "\n");
+        if (!normalizedContent.StartsWith("---\n", StringComparison.Ordinal))
+        {
+            return markdown;
+        }
+
+        var frontmatterEnd = normalizedContent.IndexOf("\n---\n", 4, StringComparison.Ordinal);
+        if (frontmatterEnd < 0)
+        {
+            return markdown;
+        }
+
+        var frontmatter = normalizedContent[4..frontmatterEnd];
+        var body = normalizedContent[(frontmatterEnd + 5)..];
+
+        Dictionary<object, object>? frontmatterMap;
+        try
+        {
+            var deserializer = new DeserializerBuilder().Build();
+            frontmatterMap = deserializer.Deserialize<Dictionary<object, object>>(frontmatter);
+        }
+        catch (YamlException)
+        {
+            return markdown;
+        }
+
+        if (frontmatterMap is null || frontmatterMap.Count == 0)
+        {
+            return markdown;
+        }
+
+        var hasChanges = false;
+        foreach (var (key, value) in values)
+        {
+            var matchingKey = frontmatterMap.Keys.FirstOrDefault(existingKey =>
+                string.Equals(existingKey?.ToString(), key, StringComparison.OrdinalIgnoreCase));
+
+            if (matchingKey is null)
+            {
+                continue;
+            }
+
+            frontmatterMap[matchingKey] = value;
+            hasChanges = true;
+        }
+
+        if (!hasChanges)
+        {
+            return markdown;
+        }
+
+        var serializer = new SerializerBuilder().Build();
+        var serializedFrontmatter = serializer.Serialize(frontmatterMap).TrimEnd('\r', '\n');
+        var updatedContent = $"---\n{serializedFrontmatter}\n---\n{body}";
+        return hasCrLf ? updatedContent.Replace("\n", "\r\n") : updatedContent;
     }
 }

@@ -390,6 +390,7 @@ internal static class SiteGenerator
             }
 
             var markdownFiles = Directory.GetFiles(fullFolderPath, "*.md");
+            markdownFiles = [.. markdownFiles.Where(mdPath => !IsTemplateDefinitionFile(mdPath))];
 
             if (markdownFiles.Length == 0)
             {
@@ -434,5 +435,13 @@ internal static class SiteGenerator
             .ToList();
 
         return children;
+    }
+
+    private static bool IsTemplateDefinitionFile(string filePath)
+    {
+        var fileName = Path.GetFileName(filePath);
+        return fileName.Equals("template.md", StringComparison.OrdinalIgnoreCase) ||
+               fileName.Equals("post-template.md", StringComparison.OrdinalIgnoreCase) ||
+               fileName.Equals("page-template.md", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -1,5 +1,6 @@
-﻿using Blake.BuildTools.Utils;
+using Blake.BuildTools.Utils;
 using Blake.Types;
+using System.Text.RegularExpressions;
 
 namespace Blake.BuildTools.Tests.Utils;
 
@@ -90,5 +91,32 @@ public class FrontmatterHelperTests
         Assert.Null(result.IconIdentifier);
         Assert.Empty(result.Slug);
         Assert.Empty(result.Description);
+    }
+
+    [Fact]
+    public void UpdateFrontmatterValuesIfPresent_UpdatesExistingKeysCaseInsensitive()
+    {
+        var markdown = """
+                       ---
+                       Title: "Old"
+                       DATE: 2001-01-01
+                       Id: "old-id"
+                       category: "engineering"
+                       ---
+
+                       # Draft
+                       """;
+
+        var updated = FrontmatterHelper.UpdateFrontmatterValuesIfPresent(markdown, new Dictionary<string, object>
+        {
+            ["title"] = "A Better CLI",
+            ["date"] = "2026-05-14",
+            ["id"] = "9f7e237a-9988-4d42-9bfb-c2f3bd588f8a"
+        });
+
+        Assert.Matches(new Regex(@"(?im)^title:\s*[""']?A Better CLI[""']?\s*$"), updated);
+        Assert.Matches(new Regex(@"(?im)^date:\s*[""']?2026-05-14[""']?\s*$"), updated);
+        Assert.Matches(new Regex(@"(?im)^id:\s*[""']?9f7e237a-9988-4d42-9bfb-c2f3bd588f8a[""']?\s*$"), updated);
+        Assert.Matches(new Regex(@"(?im)^category:\s*[""']?engineering[""']?\s*$"), updated);
     }
 }

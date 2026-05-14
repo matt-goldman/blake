@@ -1,4 +1,4 @@
-﻿using Blake.BuildTools.Generator;
+using Blake.BuildTools.Generator;
 using System.Diagnostics;
 using Blake.BuildTools.Services;
 using Blake.Types;
@@ -47,6 +47,10 @@ public class Program
             case "serve":
                 return await ServeBakeAsync(args, logger, cancellationToken);
             case "new":
+                if (args.Length > 1 && args[1].Equals("content", StringComparison.OrdinalIgnoreCase))
+                {
+                    return await NewContentAsync(args, logger, cancellationToken);
+                }
                 return await NewSiteAsync(args, logger, cancellationToken);
             default:
                 logger.LogError("Unknown option: {option}", option);
@@ -98,6 +102,11 @@ public class Program
         Console.WriteLine("                         --siteName, -sn  The name of the new site (optional). Uses the directory name if not specified. If configured in the template, replaces the template name with the provided name.");
         Console.WriteLine("                         --url, -u        The URL of the repo that hosts the template (optional). Can be used to install templates outside the public Blake registry. Uses Git, so should work with any repo you have access to.");
         Console.WriteLine("                         --list           Lists all available templates in the public Blake registry");
+        Console.WriteLine("  new content [PATH]   Generates a markdown content file.");
+        Console.WriteLine("                       Options:");
+        Console.WriteLine("                         --title, -t      The title (or provide as positional argument).");
+        Console.WriteLine("                         --directory, -d  The directory to create the file in (optional).");
+        Console.WriteLine("                       If title is omitted, uses \"Untitled\".");
         Console.WriteLine();
         Console.WriteLine("  serve <PATH>         Bake and run the Blazor app in development mode.");
         Console.WriteLine("                       Options:");
@@ -307,7 +316,7 @@ public class Program
 
         var templateService = new TemplateService();
         
-        if (args[1] == "--list")
+        if (args.Length > 1 && args[1] == "--list")
         {
             var templates = await templateService.GetTemplatesAsync(cancellationToken);
             
@@ -456,6 +465,134 @@ public class Program
         return await BakeBlakeAsync(args, logger, cancellationToken);
     }
 
+    private static async Task<int> NewContentAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var projectPath = currentDirectory;
+        var title = string.Empty;
+        string? providedDirectory = null;
+        var positionalArguments = new List<string>();
+        var now = DateTime.UtcNow;
+
+        for (var i = 2; i < args.Length; i++)
+        {
+            var arg = args[i];
+
+            if (arg is "--title" or "-t")
+            {
+                if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]))
+                {
+                    logger.LogError("A title is required. Use --title or -t.");
+                    return 1;
+                }
+
+                title = args[++i].Trim();
+                continue;
+            }
+
+            if (arg is "--directory" or "-d")
+            {
+                if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]))
+                {
+                    logger.LogError("A directory is required after --directory or -d.");
+                    return 1;
+                }
+
+                providedDirectory = NormalizePathArgument(args[++i]);
+                continue;
+            }
+
+            if (arg.StartsWith('-'))
+            {
+                logger.LogError("Unknown option for '{Command}': '{Option}'", "new content", arg);
+                return 1;
+            }
+
+            positionalArguments.Add(arg.Trim('"'));
+        }
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            title = "Untitled";
+
+            if (positionalArguments.Count == 1 && !string.IsNullOrWhiteSpace(providedDirectory))
+            {
+                if (LooksLikePath(positionalArguments[0]))
+                {
+                    projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
+                }
+                else
+                {
+                    title = positionalArguments[0];
+                }
+            }
+            else if (positionalArguments.Count == 1)
+            {
+                if (LooksLikePath(positionalArguments[0]))
+                {
+                    projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
+                }
+                else
+                {
+                    title = positionalArguments[0];
+                }
+            }
+            else
+            {
+                if (LooksLikePath(positionalArguments[0]))
+                {
+                    projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
+                    title = string.Join(" ", positionalArguments.Skip(1));
+                }
+                else
+                {
+                    title = string.Join(" ", positionalArguments);
+                }
+            }
+        }
+        else
+        {
+            if (positionalArguments.Count > 1)
+            {
+                logger.LogError("Too many positional arguments provided.");
+                return 1;
+            }
+
+            if (positionalArguments.Count == 1)
+            {
+                projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            title = "Untitled";
+        }
+
+        if (!Directory.Exists(projectPath))
+        {
+            logger.LogError("Path '{projectPath}' does not exist.", projectPath);
+            return 1;
+        }
+
+        var contentFolderPath = string.IsNullOrWhiteSpace(providedDirectory)
+            ? projectPath
+            : Path.GetFullPath(Path.IsPathRooted(providedDirectory) ? providedDirectory : Path.Combine(projectPath, providedDirectory));
+
+        if (string.IsNullOrWhiteSpace(contentFolderPath))
+        {
+            logger.LogError("Could not resolve output directory.");
+            return 1;
+        }
+
+        var scaffoldResult = await ContentScaffolder.CreateAsync(
+            new ContentScaffoldRequest(projectPath, contentFolderPath, title, now),
+            cancellationToken);
+        logger.LogInformation("✅ Created {contentType} at {outputFilePath}", scaffoldResult.ContentType, scaffoldResult.OutputFilePath);
+
+        return 0;
+    }
+
     private static string GetPathFromArgs(string[] args)
     {
         if (args.Length > 1 && !string.IsNullOrWhiteSpace(args[1]) && !args[1].StartsWith('-'))
@@ -469,5 +606,40 @@ public class Program
         }
 
         return Directory.GetCurrentDirectory();
+    }
+
+    private static bool LooksLikePath(string value)
+    {
+        return value == "." ||
+               value == ".." ||
+               value.Contains(Path.DirectorySeparatorChar) ||
+               value.Contains(Path.AltDirectorySeparatorChar) ||
+               Path.IsPathRooted(value) ||
+               Directory.Exists(value);
+    }
+
+    private static string NormalizePathArgument(string value)
+    {
+        var normalized = value.Trim();
+        if (normalized.Length >= 2 &&
+            ((normalized.StartsWith('"') && normalized.EndsWith('"')) ||
+             (normalized.StartsWith('\'') && normalized.EndsWith('\''))))
+        {
+            normalized = normalized[1..^1];
+        }
+
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return normalized;
+        }
+
+        var root = Path.GetPathRoot(normalized);
+        // Keep root paths (for example "/" or "C:\") intact; trimming separators would invalidate them.
+        if (!string.IsNullOrEmpty(root) && string.Equals(root, normalized, StringComparison.Ordinal))
+        {
+            return normalized;
+        }
+
+        return normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
     }
 }

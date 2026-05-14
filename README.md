@@ -79,6 +79,14 @@ blake bake
 blake new --list
 ```
 
+**Generate a new content scaffold:**
+```bash
+blake new content -t "Adding new templates to Blake"
+blake new content "Positional title works too"
+blake new content --directory Posts/Tech "Nested post"
+blake new content # creates "Untitled" content in current directory
+```
+
 
 ## ✨ Why Blake?
 

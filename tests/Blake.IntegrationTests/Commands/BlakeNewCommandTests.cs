@@ -2,6 +2,7 @@ using Blake.CLI;
 using Blake.IntegrationTests.Infrastructure;
 using Blake.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 namespace Blake.IntegrationTests.Commands;
 
@@ -11,6 +12,7 @@ namespace Blake.IntegrationTests.Commands;
 /// </summary>
 public class BlakeNewCommandTests : TestFixtureBase
 {
+    private const int DatePrefixLength = 10;
     const string shortName1 = "tailwind-sample";
     const string shortName2 = "simpledocs";
     const string longName1 = "Blake Simple Tailwind Sample";
@@ -52,6 +54,233 @@ public class BlakeNewCommandTests : TestFixtureBase
 
         // Cleanup the mock TemplateRegistry.json
         if (created) DeleteDebugRegistry();
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithTitle_CreatesPostMarkdownFile()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content");
+        var title = "Adding new templates to Blake";
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "content", testDir, "-t", title]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var postFile = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly).Single();
+        var postFileName = Path.GetFileNameWithoutExtension(postFile);
+        Assert.Matches(@"^\d{4}-\d{2}-\d{2}-adding-new-templates-to-blake$", postFileName);
+
+        var postDate = postFileName[..DatePrefixLength];
+        var postContents = File.ReadAllText(postFile);
+        Assert.Contains($"date: {postDate}", postContents);
+        Assert.Matches($@"(?m)^title:\s*[""']?{Regex.Escape(title)}[""']?\s*$", postContents);
+        Assert.Contains("# Adding new templates to Blake", postContents);
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_UsesPageTemplateWhenPresent()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-page");
+        var title = "About Blake";
+        var templatePath = Path.Combine(testDir, "page-template.md");
+        await File.WriteAllTextAsync(templatePath,
+            """
+            ---
+            title: "{{title}}"
+            date: {{date}}
+            slug: "{{slug}}"
+            ---
+
+            Welcome to {{title}}.
+            """);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "content", testDir, "--title", title]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var outputFilePath = Path.Combine(testDir, "about-blake.md");
+        FileSystemHelper.AssertFileExists(outputFilePath);
+        var outputContents = File.ReadAllText(outputFilePath);
+        Assert.Matches(@"(?m)^title:\s*[""']?About Blake[""']?\s*$", outputContents);
+        Assert.Matches(@"(?m)^slug:\s*[""']?about-blake[""']?\s*$", outputContents);
+        Assert.Contains("Welcome to About Blake.", outputContents);
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithoutTitle_UsesUntitled()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-missing-title");
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "content", testDir]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var filePath = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly).Single();
+        var fileContents = File.ReadAllText(filePath);
+        Assert.Matches(@"(?m)^title:\s*[""']?Untitled[""']?\s*$", fileContents);
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithPositionalTitle_CreatesPostInCurrentDirectory()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-positional-title");
+
+        // Act
+        var result = await RunBlakeFromDotnetAsync("new content \"About Blake\"", workingDirectory: testDir);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var createdFile = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly).Single();
+        Assert.EndsWith("-about-blake.md", createdFile, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithDirectoryOption_UsesExistingCaseInsensitivePostsDirectory()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-lowercase-folder");
+        var lowercasePosts = Path.Combine(testDir, "posts");
+        Directory.CreateDirectory(lowercasePosts);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "content", testDir, "--directory", "posts", "--title", "Case Test"]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        Assert.Single(Directory.GetFiles(lowercasePosts, "*.md", SearchOption.TopDirectoryOnly));
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithDirectoryOption_UpdatesTemplateFrontmatter()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-frontmatter-template");
+        var targetDir = Path.Combine(testDir, "Posts", "Tech", "DotNet");
+        var templatePath = Path.Combine(targetDir, "template.md");
+        Directory.CreateDirectory(targetDir);
+        await File.WriteAllTextAsync(templatePath,
+            """
+            ---
+            title: "replace me"
+            date: 2001-01-01
+            id: "existing-id"
+            category: "engineering"
+            ---
+
+            # Draft
+            """);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "content", "--directory", targetDir, "A Better CLI"]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var outputFile = Directory.GetFiles(targetDir, "*.md", SearchOption.TopDirectoryOnly)
+            .Single(path => !path.EndsWith("template.md", StringComparison.OrdinalIgnoreCase));
+        var fileContents = File.ReadAllText(outputFile);
+        Assert.Matches(@"(?im)^title:\s*[""']?A Better CLI[""']?\s*$", fileContents);
+        Assert.DoesNotContain("date: 2001-01-01", fileContents);
+        Assert.DoesNotContain("id: \"existing-id\"", fileContents);
+        Assert.Matches(@"(?im)^id:\s*[""']?[0-9a-fA-F-]{36}[""']?\s*$", fileContents);
+        Assert.Matches(@"(?im)^category:\s*[""']?engineering[""']?\s*$", fileContents);
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithDirectoryInsidePages_UsesPageFileNaming()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-pages-segment");
+        var targetDir = Path.Combine(testDir, "PaGeS", "Guides");
+        Directory.CreateDirectory(targetDir);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "content", "--directory", targetDir, "Docs Home"]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var createdFile = Directory.GetFiles(targetDir, "*.md", SearchOption.TopDirectoryOnly).Single();
+        Assert.Equal("docs-home.md", Path.GetFileName(createdFile));
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithPostTemplateOnly_UsesPostFileNaming()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-post-template-only");
+        await File.WriteAllTextAsync(Path.Combine(testDir, "post-template.md"),
+            """
+            ---
+            title: "{{title}}"
+            ---
+            """);
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "content", testDir, "Template Driven"]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var createdFile = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly)
+            .Single(path => !Path.GetFileName(path).Equals("post-template.md", StringComparison.OrdinalIgnoreCase));
+        Assert.Matches(@"^\d{4}-\d{2}-\d{2}-template-driven\.md$", Path.GetFileName(createdFile));
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithPostAndPageTemplates_DefaultsToPostFileNaming()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-both-templates");
+        await File.WriteAllTextAsync(Path.Combine(testDir, "post-template.md"), "---\ntitle: \"{{title}}\"\n---");
+        await File.WriteAllTextAsync(Path.Combine(testDir, "page-template.md"), "---\ntitle: \"{{title}}\"\n---");
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", "content", testDir, "Both Templates"]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        var createdFile = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly)
+            .Single(path =>
+                !path.EndsWith("post-template.md", StringComparison.OrdinalIgnoreCase) &&
+                !path.EndsWith("page-template.md", StringComparison.OrdinalIgnoreCase));
+        Assert.Matches(@"^\d{4}-\d{2}-\d{2}-both-templates\.md$", Path.GetFileName(createdFile));
+    }
+
+    [Fact]
+    public async Task BlakeNewContent_WithQuotedDirectoryPath_TrimsQuotes()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-content-quoted-directory");
+        var nestedDir = Path.Combine(testDir, "Posts", "Quoted");
+        Directory.CreateDirectory(nestedDir);
+        var command = $"new content --directory \"{nestedDir}\" \"Quoted Directory\"";
+
+        // Act
+        var result = await RunBlakeFromDotnetAsync(command);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        Assert.Single(Directory.GetFiles(nestedDir, "*.md", SearchOption.TopDirectoryOnly));
+    }
+
+    [Fact]
+    public async Task BlakeNew_WithPathNamedPost_CreatesSiteDirectory()
+    {
+        // Arrange
+        var testDir = CreateTempDirectory("blake-new-site-named-post");
+        var projectPath = Path.Combine(testDir, "post");
+
+        // Act
+        var result = await RunBlakeCommandAsync(["new", projectPath]);
+
+        // Assert
+        Assert.Equal(0, result.ExitCode);
+        FileSystemHelper.AssertFileExists(Path.Combine(projectPath, "post.csproj"));
     }
 
     [Fact]
