@@ -73,9 +73,10 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.Matches(@"^\d{4}-\d{2}-\d{2}-adding-new-templates-to-blake$", postFileName);
 
         var postDate = postFileName[..DatePrefixLength];
-        FileSystemHelper.AssertFileContains(postFile, $"date: {postDate}");
-        Assert.Matches($@"(?im)^title:\s*[""']?{Regex.Escape(title)}[""']?\s*$", File.ReadAllText(postFile));
-        FileSystemHelper.AssertFileContains(postFile, "# Adding new templates to Blake");
+        var postContents = File.ReadAllText(postFile);
+        Assert.Contains($"date: {postDate}", postContents);
+        Assert.Matches($@"(?m)^title:\s*[""']?{Regex.Escape(title)}[""']?\s*$", postContents);
+        Assert.Contains("# Adding new templates to Blake", postContents);
     }
 
     [Fact]
@@ -103,9 +104,10 @@ public class BlakeNewCommandTests : TestFixtureBase
         Assert.Equal(0, result.ExitCode);
         var outputFilePath = Path.Combine(testDir, "about-blake.md");
         FileSystemHelper.AssertFileExists(outputFilePath);
-        Assert.Matches(@"(?im)^title:\s*[""']?About Blake[""']?\s*$", File.ReadAllText(outputFilePath));
-        Assert.Matches(@"(?im)^slug:\s*[""']?about-blake[""']?\s*$", File.ReadAllText(outputFilePath));
-        FileSystemHelper.AssertFileContains(outputFilePath, "Welcome to About Blake.");
+        var outputContents = File.ReadAllText(outputFilePath);
+        Assert.Matches(@"(?m)^title:\s*[""']?About Blake[""']?\s*$", outputContents);
+        Assert.Matches(@"(?m)^slug:\s*[""']?about-blake[""']?\s*$", outputContents);
+        Assert.Contains("Welcome to About Blake.", outputContents);
     }
 
     [Fact]
@@ -120,7 +122,8 @@ public class BlakeNewCommandTests : TestFixtureBase
         // Assert
         Assert.Equal(0, result.ExitCode);
         var filePath = Directory.GetFiles(testDir, "*.md", SearchOption.TopDirectoryOnly).Single();
-        Assert.Matches(@"(?im)^title:\s*[""']?Untitled[""']?\s*$", File.ReadAllText(filePath));
+        var fileContents = File.ReadAllText(filePath);
+        Assert.Matches(@"(?m)^title:\s*[""']?Untitled[""']?\s*$", fileContents);
     }
 
     [Fact]
