@@ -520,10 +520,7 @@ public class Program
         {
             title = "Untitled";
 
-            if (positionalArguments.Count == 0)
-            {
-            }
-            else if (positionalArguments.Count == 1 && !string.IsNullOrWhiteSpace(providedDirectory))
+            if (positionalArguments.Count == 1 && !string.IsNullOrWhiteSpace(providedDirectory))
             {
                 if (LooksLikePath(positionalArguments[0]))
                 {
