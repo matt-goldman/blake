@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace Blake.BuildTools.Generator;
 
-internal sealed record ContentScaffoldRequest(string ProjectPath, string ContentFolderPath, string Title, DateTime UtcNow);
+internal sealed record ContentScaffoldRequest(string ProjectPath, string ContentFolderPath, string Title, DateTime CreatedAtUtc);
 
 internal sealed record ContentScaffoldResult(string ContentType, string OutputFilePath);
 
@@ -14,7 +14,7 @@ internal static class ContentScaffolder
         Directory.CreateDirectory(request.ContentFolderPath);
 
         var contentType = InferContentType(request.ContentFolderPath, request.ProjectPath);
-        var dateStamp = request.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var dateStamp = request.CreatedAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var id = Guid.NewGuid().ToString();
         var slug = Slugify(request.Title);
         var fileName = contentType == "post" ? $"{dateStamp}-{slug}.md" : $"{slug}.md";

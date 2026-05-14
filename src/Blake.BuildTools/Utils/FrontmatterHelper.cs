@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -122,7 +123,7 @@ public static class FrontmatterHelper
             var deserializer = new DeserializerBuilder().Build();
             frontmatterMap = deserializer.Deserialize<Dictionary<object, object>>(frontmatter);
         }
-        catch
+        catch (YamlException)
         {
             return markdown;
         }
