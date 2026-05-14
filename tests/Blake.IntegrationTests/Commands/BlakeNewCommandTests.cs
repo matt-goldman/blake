@@ -181,10 +181,11 @@ public class BlakeNewCommandTests : TestFixtureBase
         var outputFile = Directory.GetFiles(targetDir, "*.md", SearchOption.TopDirectoryOnly)
             .Single(path => !path.EndsWith("template.md", StringComparison.OrdinalIgnoreCase));
         var fileContents = File.ReadAllText(outputFile);
-        Assert.Contains("title: \"A Better CLI\"", fileContents);
+        Assert.Matches(@"(?im)^title:\s*[""']?A Better CLI[""']?\s*$", fileContents);
         Assert.DoesNotContain("date: 2001-01-01", fileContents);
         Assert.DoesNotContain("id: \"existing-id\"", fileContents);
-        Assert.Contains("category: \"engineering\"", fileContents);
+        Assert.Matches(@"(?im)^id:\s*[""']?[0-9a-fA-F-]{36}[""']?\s*$", fileContents);
+        Assert.Matches(@"(?im)^category:\s*[""']?engineering[""']?\s*$", fileContents);
     }
 
     [Fact]

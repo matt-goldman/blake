@@ -1,8 +1,5 @@
 using Blake.BuildTools.Generator;
 using System.Diagnostics;
-using System.Globalization;
-using System.Text;
-using System.Text.RegularExpressions;
 using Blake.BuildTools.Services;
 using Blake.Types;
 using Microsoft.Extensions.Logging;
@@ -476,8 +473,6 @@ public class Program
         string? providedDirectory = null;
         var positionalArguments = new List<string>();
         var now = DateTime.UtcNow;
-        var dateStamp = now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        var id = Guid.NewGuid().ToString();
 
         for (var i = 2; i < args.Length; i++)
         {
@@ -590,31 +585,10 @@ public class Program
             return 1;
         }
 
-        Directory.CreateDirectory(contentFolderPath);
-
-        var contentType = InferContentType(contentFolderPath, projectPath);
-        var slug = Slugify(title);
-        var fileName = contentType == "post" ? $"{dateStamp}-{slug}.md" : $"{slug}.md";
-        var outputFilePath = Path.Combine(contentFolderPath, fileName);
-        var counter = 2;
-        while (File.Exists(outputFilePath))
-        {
-            var candidate = contentType == "post"
-                ? $"{dateStamp}-{slug}-{counter}.md"
-                : $"{slug}-{counter}.md";
-            outputFilePath = Path.Combine(contentFolderPath, candidate);
-            counter++;
-        }
-
-        var templateFilePath = ResolveTemplatePath(contentType, contentFolderPath, projectPath);
-        var contentTemplate = templateFilePath is not null
-            ? await File.ReadAllTextAsync(templateFilePath, cancellationToken)
-            : GetDefaultContentTemplate(title, dateStamp);
-
-        var content = ApplyTemplateValues(contentTemplate, title, dateStamp, slug, id);
-
-        await File.WriteAllTextAsync(outputFilePath, content, cancellationToken);
-        logger.LogInformation("✅ Created {contentType} at {outputFilePath}", contentType, outputFilePath);
+        var scaffoldResult = await ContentScaffolder.CreateAsync(
+            new ContentScaffoldRequest(projectPath, contentFolderPath, title, now),
+            cancellationToken);
+        logger.LogInformation("✅ Created {contentType} at {outputFilePath}", scaffoldResult.ContentType, scaffoldResult.OutputFilePath);
 
         return 0;
     }
@@ -632,44 +606,6 @@ public class Program
         }
 
         return Directory.GetCurrentDirectory();
-    }
-
-    private static string Slugify(string title)
-    {
-        var slugBuilder = new StringBuilder();
-        var lastWasDash = false;
-
-        foreach (var c in title.ToLowerInvariant())
-        {
-            if (char.IsLetterOrDigit(c))
-            {
-                slugBuilder.Append(c);
-                lastWasDash = false;
-                continue;
-            }
-
-            if (lastWasDash || slugBuilder.Length == 0) continue;
-            slugBuilder.Append('-');
-            lastWasDash = true;
-        }
-
-        var slug = slugBuilder.ToString().Trim('-');
-        return string.IsNullOrWhiteSpace(slug) ? "untitled" : slug;
-    }
-
-    private static string GetDefaultContentTemplate(string title, string dateStamp)
-    {
-        var escapedTitle = EscapeForDoubleQuotedYaml(title);
-        return $"""
-                ---
-                title: "{escapedTitle}"
-                date: {dateStamp}
-                description: ""
-                ---
-
-                # {title}
-
-                """;
     }
 
     private static bool LooksLikePath(string value)
@@ -705,95 +641,5 @@ public class Program
         }
 
         return normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-    }
-
-    private static string InferContentType(string outputDirectory, string projectPath)
-    {
-        if (PathSegmentsContain(outputDirectory, "pages"))
-        {
-            return "page";
-        }
-
-        if (PathSegmentsContain(outputDirectory, "posts"))
-        {
-            return "post";
-        }
-
-        var hasPostTemplate = ResolveTemplatePath("post", outputDirectory, projectPath) is not null;
-        var hasPageTemplate = ResolveTemplatePath("page", outputDirectory, projectPath) is not null;
-
-        if (hasPageTemplate && !hasPostTemplate)
-        {
-            return "page";
-        }
-
-        return "post";
-    }
-
-    private static bool PathSegmentsContain(string path, string segment)
-    {
-        return path
-            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)
-            .Any(part => string.Equals(part, segment, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string? ResolveTemplatePath(string contentType, string outputDirectory, string projectPath)
-    {
-        var candidates = new[]
-        {
-            Path.Combine(outputDirectory, $"{contentType}-template.md"),
-            Path.Combine(outputDirectory, "template.md"),
-            Path.Combine(projectPath, $"{contentType}-template.md"),
-            Path.Combine(projectPath, "template.md")
-        };
-
-        return candidates.FirstOrDefault(File.Exists);
-    }
-
-    private static string ApplyTemplateValues(string contentTemplate, string title, string dateStamp, string slug, string id)
-    {
-        var content = contentTemplate
-            .Replace("{{title}}", title)
-            .Replace("{{date}}", dateStamp)
-            .Replace("{{slug}}", slug)
-            .Replace("{{id}}", id);
-
-        return UpdateFrontmatterValues(content, title, dateStamp, id);
-    }
-
-    private static string UpdateFrontmatterValues(string content, string title, string dateStamp, string id)
-    {
-        var normalizedContent = content.Replace("\r\n", "\n");
-        if (!normalizedContent.StartsWith("---\n", StringComparison.Ordinal))
-        {
-            return content;
-        }
-
-        var frontmatterEnd = normalizedContent.IndexOf("\n---\n", 4, StringComparison.Ordinal);
-        if (frontmatterEnd < 0)
-        {
-            return content;
-        }
-
-        var frontmatter = normalizedContent[4..frontmatterEnd];
-        var body = normalizedContent[(frontmatterEnd + 5)..];
-
-        frontmatter = SetFrontmatterValue(frontmatter, "title", $"\"{EscapeForDoubleQuotedYaml(title)}\"");
-        frontmatter = SetFrontmatterValue(frontmatter, "date", dateStamp);
-        frontmatter = SetFrontmatterValue(frontmatter, "id", $"\"{id}\"");
-
-        var updatedContent = $"---\n{frontmatter}\n---\n{body}";
-        return content.Contains("\r\n", StringComparison.Ordinal) ? updatedContent.Replace("\n", "\r\n") : updatedContent;
-    }
-
-    private static string SetFrontmatterValue(string frontmatter, string key, string value)
-    {
-        var pattern = $@"^(?<indent>\s*){Regex.Escape(key)}\s*:\s*.*$";
-        return Regex.Replace(frontmatter, pattern, $"${{indent}}{key}: {value}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
-    }
-
-    private static string EscapeForDoubleQuotedYaml(string input)
-    {
-        return input.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 }
