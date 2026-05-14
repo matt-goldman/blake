@@ -518,16 +518,16 @@ public class Program
 
         if (string.IsNullOrWhiteSpace(title))
         {
+            title = "Untitled";
+
             if (positionalArguments.Count == 0)
             {
-                title = "Untitled";
             }
             else if (positionalArguments.Count == 1 && !string.IsNullOrWhiteSpace(providedDirectory))
             {
                 if (LooksLikePath(positionalArguments[0]))
                 {
                     projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
-                    title = "Untitled";
                 }
                 else
                 {
@@ -539,7 +539,6 @@ public class Program
                 if (LooksLikePath(positionalArguments[0]))
                 {
                     projectPath = Path.GetFullPath(positionalArguments[0], currentDirectory);
-                    title = "Untitled";
                 }
                 else
                 {
@@ -688,13 +687,21 @@ public class Program
 
     private static string NormalizePathArgument(string value)
     {
-        var normalized = value.Trim().Trim('"', '\'');
-        if (normalized.Length <= 1 || string.IsNullOrWhiteSpace(normalized))
+        var normalized = value.Trim();
+        if (normalized.Length >= 2 &&
+            ((normalized.StartsWith('"') && normalized.EndsWith('"')) ||
+             (normalized.StartsWith('\'') && normalized.EndsWith('\''))))
+        {
+            normalized = normalized[1..^1];
+        }
+
+        if (string.IsNullOrWhiteSpace(normalized))
         {
             return normalized;
         }
 
         var root = Path.GetPathRoot(normalized);
+        // Keep root paths (for example "/" or "C:\") intact; trimming separators would invalidate them.
         if (!string.IsNullOrEmpty(root) && string.Equals(root, normalized, StringComparison.Ordinal))
         {
             return normalized;
