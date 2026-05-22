@@ -17,7 +17,7 @@ internal static class ContentScaffolder
         var dateStamp = request.CreatedAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var id = Guid.NewGuid().ToString();
         var slug = Slugify(request.Title);
-        var fileName = contentType == "post" ? $"{dateStamp}-{slug}.md" : $"{slug}.md";
+        var fileName = contentType == "post" ? $"{slug}.md" : $"{slug}.md";
         var outputFilePath = Path.Combine(request.ContentFolderPath, fileName);
         var counter = 2;
         while (File.Exists(outputFilePath))
