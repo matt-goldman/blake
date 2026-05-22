@@ -237,7 +237,19 @@ public class Program
 
     private static async Task<int> ServeBakeAsync(string[] args, ILogger logger, CancellationToken cancellationToken)
     {
-        var path = args.Length > 1 ? args[1].Trim('"') : Directory.GetCurrentDirectory();
+        string path;
+
+        try
+        {
+            // get target path or use current directory
+            path = GetPathFromArgs(args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("❌ Failed to parse target path from arguments. Please provide a valid path.");
+            logger.LogError(ex, "Failed to parse target path from arguments.");
+            return 1;
+        }
 
         Console.WriteLine($"🔧 Baking in: {path}");
         var bakeResult = await BakeBlakeAsync(args, logger, cancellationToken);
