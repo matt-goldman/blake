@@ -1,5 +1,6 @@
 ﻿//using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using NuGet.Frameworks;
 using System.Diagnostics;
 using System.Xml.Linq;
 
@@ -95,6 +96,9 @@ internal static class PluginLoader
         var targetFramework = project.Descendants("TargetFramework")
             .Select(tf => tf.Value)
             .FirstOrDefault() ?? "net10.0";
+        
+        var projectFramework = NuGetFramework.ParseFolder(targetFramework);
+        var reducer = new FrameworkReducer();
 
         var userHomeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var globalPackagesFolder = Path.Combine(userHomeDirectory, ".nuget", "packages");
@@ -108,16 +112,23 @@ internal static class PluginLoader
                 var packageVersion = p.Attribute("Version")!.Value;
                 var packageNameLower = packageName.ToLowerInvariant();
 
-                var dllPath = Path.Combine(
-                    globalPackagesFolder,
-                    packageNameLower,
-                    packageVersion,
-                    "lib",
-                    targetFramework, // e.g. "net10.0"
-                    $"{packageName}.dll" // case-sensitive match here
-                );
+                var libFolder = Path.Combine(globalPackagesFolder, packageNameLower, packageVersion, "lib");
 
-                return new NuGetPluginInfo(packageName, packageVersion, dllPath);
+                string? dllPath = null;
+                if (Directory.Exists(libFolder))
+                {
+                    var available = Directory.GetDirectories(libFolder)
+                        .Select(d => NuGetFramework.ParseFolder(Path.GetFileName(d)))
+                        .ToList();
+
+                    var nearest = reducer.GetNearest(projectFramework, available);
+                    if (nearest is not null)
+                    {
+                        dllPath = Path.Combine(libFolder, nearest.GetShortFolderName(), $"{packageName}.dll");
+                    }
+                }
+
+                return new NuGetPluginInfo(packageName, packageVersion, dllPath??string.Empty);
             })
             .ToList();
     }
