@@ -1,5 +1,4 @@
 using Blake.IntegrationTests.Infrastructure;
-using Microsoft.Extensions.Logging;
 
 namespace Blake.IntegrationTests.Commands;
 

@@ -1,7 +1,6 @@
 ﻿//using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Reflection;
 using System.Xml.Linq;
 
 namespace Blake.BuildTools.Utils;
@@ -28,7 +27,7 @@ internal static class PluginLoader
             return plugins;
         }
 
-        var doc = new XDocument();
+        XDocument doc;
         try
         {
             doc = XDocument.Load(csprojFile);

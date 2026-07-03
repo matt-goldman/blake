@@ -1,4 +1,3 @@
-using Blake.CLI;
 using Blake.IntegrationTests.Infrastructure;
 using Blake.Types;
 using Microsoft.Extensions.Logging;

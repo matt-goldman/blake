@@ -1,7 +1,6 @@
 using Blake.BuildTools.Utils;
 using Microsoft.Extensions.Logging;
 using System.Xml.Linq;
-using Xunit;
 
 namespace Blake.BuildTools.Tests.Utils;
 
