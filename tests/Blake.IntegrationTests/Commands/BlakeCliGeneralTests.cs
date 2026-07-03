@@ -1,5 +1,4 @@
 using Blake.IntegrationTests.Infrastructure;
-using System.Linq;
 
 namespace Blake.IntegrationTests.Commands;
 

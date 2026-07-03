@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Blake.BuildTools/Blake.BuildTools.csproj" />
+    <Project Path="src/Blake.CLI/Blake.CLI.csproj" />
+    <Project Path="src/Blake.MarkdownParser/Blake.MarkdownParser.csproj" />
+    <Project Path="src/Blake.Types/Blake.Types.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Blake.BuildTools.Tests/Blake.BuildTools.Tests.csproj" />
+    <Project Path="tests/Blake.IntegrationTests/Blake.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

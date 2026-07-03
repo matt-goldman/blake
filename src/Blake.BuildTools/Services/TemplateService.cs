@@ -1,7 +1,5 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Net.Http.Json;
-using System.Reflection;
 
 namespace Blake.BuildTools.Services;
 

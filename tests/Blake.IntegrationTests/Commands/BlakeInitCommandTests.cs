@@ -1,5 +1,4 @@
 using Blake.IntegrationTests.Infrastructure;
-using Microsoft.Extensions.Logging;
 
 namespace Blake.IntegrationTests.Commands;
 
@@ -90,7 +89,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         
         // Create a second .csproj file
         File.WriteAllText(Path.Combine(testDir, "SecondProject.csproj"), 
-            "<Project Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\"><PropertyGroup><TargetFramework>net9.0</TargetFramework></PropertyGroup></Project>");
+            "<Project Sdk=\"Microsoft.NET.Sdk.BlazorWebAssembly\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
 
         // Act
         var result = await RunBlakeCommandAsync(["init", testDir]);
@@ -289,7 +288,7 @@ public class BlakeInitCommandTests : TestFixtureBase
         var csprojContent = @"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 </Project>";
         

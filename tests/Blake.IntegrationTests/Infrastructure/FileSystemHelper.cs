@@ -17,7 +17,7 @@ public static class FileSystemHelper
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"new blazorwasm -o \"{projectPath}\" -n \"{projectName}\" --framework net9.0",
+            Arguments = $"new blazorwasm -o \"{projectPath}\" -n \"{projectName}\" --framework net10.0",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
