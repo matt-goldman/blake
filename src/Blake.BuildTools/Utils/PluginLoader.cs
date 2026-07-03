@@ -95,7 +95,7 @@ internal static class PluginLoader
         // Find the target framework dynamically from the .csproj file
         var targetFramework = project.Descendants("TargetFramework")
             .Select(tf => tf.Value)
-            .FirstOrDefault() ?? "net9.0";
+            .FirstOrDefault() ?? "net10.0";
 
         var userHomeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var globalPackagesFolder = Path.Combine(userHomeDirectory, ".nuget", "packages");
@@ -114,7 +114,7 @@ internal static class PluginLoader
                     packageNameLower,
                     packageVersion,
                     "lib",
-                    targetFramework, // e.g. "net9.0"
+                    targetFramework, // e.g. "net10.0"
                     $"{packageName}.dll" // case-sensitive match here
                 );
 
@@ -139,7 +139,7 @@ internal static class PluginLoader
         // Find the target framework dynamically from the .csproj file
         var targetFramework = project.Descendants("TargetFramework")
             .Select(tf => tf.Value)
-            .FirstOrDefault() ?? "net9.0";
+            .FirstOrDefault() ?? "net10.0";
 
         return projectReferences.Select(pluginProject =>
         {

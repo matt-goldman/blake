@@ -481,7 +481,7 @@ public class BlakePluginTests : TestFixtureBase
     private static string GetCurrentDirectory()
     {
         var currentDir = Directory.GetCurrentDirectory();
-        while (currentDir != null && !File.Exists(Path.Combine(currentDir, "Blake.sln")))
+        while (currentDir != null && !File.Exists(Path.Combine(currentDir, "Blake.slnx")))
         {
             currentDir = Directory.GetParent(currentDir)?.FullName;
         }

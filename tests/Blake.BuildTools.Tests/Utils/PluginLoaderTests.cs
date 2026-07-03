@@ -15,7 +15,7 @@ public class PluginLoaderTests
         var pluginPath = Path.GetFullPath(Path.Combine(
             Directory.GetCurrentDirectory(),
             "..", "..", "..", "..", "..", "tests", "Blake.IntegrationTests", 
-            "TestPlugin", "bin", "Debug", "net9.0", 
+            "TestPlugin", "bin", "Debug", "net10.0", 
             "BlakePlugin.TestPlugin.dll"
         ));
 
@@ -66,7 +66,7 @@ public class PluginLoaderTests
         var pluginPath = Path.GetFullPath(Path.Combine(
             Directory.GetCurrentDirectory(),
             "..", "..", "..", "..", "..", "tests", "Blake.IntegrationTests", 
-            "TestPluginWithDependencies", "bin", "Debug", "net9.0", 
+            "TestPluginWithDependencies", "bin", "Debug", "net10.0", 
             "BlakePlugin.TestPluginWithDependencies.dll"
         ));
 
@@ -105,7 +105,7 @@ public class PluginLoaderTests
         var xml = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include=""BlakePlugin.ReadTime"" Version=""1.0.0"" />
@@ -134,7 +134,7 @@ public class PluginLoaderTests
         var xml = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include=""../BlakePlugin.Custom/BlakePlugin.Custom.csproj"" />
@@ -276,7 +276,7 @@ public class PluginLoaderTests
             var csprojContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include=""BlakePlugin.NonExistentPlugin"" Version=""1.0.0"" />
@@ -328,7 +328,7 @@ public class PluginLoaderTests
             var csprojContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 </Project>";
             var csprojPath = Path.Combine(testDir, "TestProject.csproj");

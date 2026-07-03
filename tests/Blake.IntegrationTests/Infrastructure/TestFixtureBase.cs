@@ -134,7 +134,7 @@ public abstract class TestFixtureBase : IDisposable
     {
         // Navigate up from test directory to find the CLI project
         var currentDir = Directory.GetCurrentDirectory();
-        while (currentDir != null && !File.Exists(Path.Combine(currentDir, "Blake.sln")))
+        while (currentDir != null && !File.Exists(Path.Combine(currentDir, "Blake.slnx")))
         {
             currentDir = Directory.GetParent(currentDir)?.FullName;
         }
